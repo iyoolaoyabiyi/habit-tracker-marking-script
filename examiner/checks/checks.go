@@ -36,6 +36,7 @@ type manifest struct {
 
 func RunAll(root string, options RuntimeOptions) []Result {
 	return []Result{
+		checkSpecChecklist(),
 		checkRequiredFiles(root),
 		checkRequiredStack(root),
 		checkNamingConventions(root),
@@ -50,6 +51,7 @@ func RunAll(root string, options RuntimeOptions) []Result {
 		checkUIContracts(root),
 		checkAuthBehaviorMarkers(root),
 		checkHabitBehaviorMarkers(root),
+		checkSourceBehaviorMarkers(root),
 		checkAccessibilityMarkers(root),
 		checkPWAContracts(root),
 		checkTests(root),

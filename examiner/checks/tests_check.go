@@ -35,7 +35,6 @@ func checkTests(root string) Result {
 		{
 			file: "tests/unit/streaks.test.ts",
 			patterns: []string{
-				`/* MENTOR_TRACE_STAGE3_HABIT_A91 */`,
 				`describe('calculateCurrentStreak'`,
 				`returns 0 when completions is empty`,
 				`returns 0 when today is not completed`,

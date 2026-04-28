@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -11,31 +12,40 @@ func checkUtilityContracts(root string) Result {
 	utilityChecks := []struct {
 		file     string
 		patterns []string
+		regexes  []string
 	}{
 		{
 			file: "src/lib/slug.ts",
-			patterns: []string{
-				"export function getHabitSlug(name: string): string",
+			regexes: []string{
+				`export\s+function\s+getHabitSlug\s*\(\s*name\s*:\s*string\s*\)\s*:\s*string`,
 			},
 		},
 		{
 			file: "src/lib/validators.ts",
 			patterns: []string{
-				"export function validateHabitName(name: string): {",
 				"Habit name is required",
 				"Habit name must be 60 characters or fewer",
+			},
+			regexes: []string{
+				`export\s+function\s+validateHabitName\s*\(\s*name\s*:\s*string\s*\)\s*:\s*\{`,
+				`\.trim\s*\(`,
+				`>\s*60|length\s*>\s*60`,
 			},
 		},
 		{
 			file: "src/lib/streaks.ts",
-			patterns: []string{
-				"export function calculateCurrentStreak(completions: string[], today",
+			regexes: []string{
+				`export\s+function\s+calculateCurrentStreak\s*\(\s*completions\s*:\s*string\[\]\s*,\s*today`,
+				`new\s+Set\s*\(\s*completions\s*\)`,
+				`includes\s*\(\s*today\s*\)`,
 			},
 		},
 		{
 			file: "src/lib/habits.ts",
-			patterns: []string{
-				"export function toggleHabitCompletion(habit: Habit, date: string): Habit",
+			regexes: []string{
+				`export\s+function\s+toggleHabitCompletion\s*\(\s*habit\s*:\s*Habit\s*,\s*date\s*:\s*string\s*\)\s*:\s*Habit`,
+				`new\s+Set\s*\(`,
+				`\.\.\.\s*habit`,
 			},
 		},
 	}
@@ -51,7 +61,16 @@ func checkUtilityContracts(root string) Result {
 				return fail("utility contracts", fmt.Sprintf("%s missing %q", check.file, pattern))
 			}
 		}
+		for _, pattern := range check.regexes {
+			ok, err := regexp.MatchString(pattern, text)
+			if err != nil {
+				return fail("utility contracts", fmt.Sprintf("%s has invalid examiner regex %q: %v", check.file, pattern, err))
+			}
+			if !ok {
+				return fail("utility contracts", fmt.Sprintf("%s missing pattern %q", check.file, pattern))
+			}
+		}
 	}
 
-	return pass("utility contracts", "required exported utility signatures found")
+	return pass("utility contracts", "required exported utility signatures and core implementation markers found")
 }
