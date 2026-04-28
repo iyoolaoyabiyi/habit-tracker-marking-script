@@ -40,6 +40,10 @@ func checkExecutableVerification(root string, options RuntimeOptions) Result {
 	if !strings.Contains(unitOutput, "Coverage") && !strings.Contains(unitOutput, "coverage") {
 		return fail("executable verification", "unit test output is missing coverage output")
 	}
+	coverageOutput, err := verifyCoverageSummary(root)
+	if err != nil {
+		return fail("executable verification", "coverage threshold verification failed:\n"+tail(coverageOutput, 60))
+	}
 
 	integrationOutput, err := runCommand(root, "npm", "run", "test:integration")
 	if err != nil {
@@ -59,8 +63,8 @@ func checkExecutableVerification(root string, options RuntimeOptions) Result {
 	}
 
 	var browserOutput string
-	if options.RunE2E {
-		browserOutput, err = runExaminerBrowserTests(root)
+	if options.RunE2E && (options.RunOffline || options.RunAccessibility || options.RunResponsive) {
+		browserOutput, err = runExaminerBrowserTests(root, options)
 		if err != nil {
 			return fail("executable verification", "examiner-owned browser tests failed:\n"+tail(browserOutput, 100))
 		}
@@ -68,7 +72,11 @@ func checkExecutableVerification(root string, options RuntimeOptions) Result {
 
 	details := "build, unit, integration, and examiner runtime tests ran successfully"
 	if options.RunE2E {
-		details += "; e2e and examiner browser tests ran successfully"
+		if options.RunOffline || options.RunAccessibility || options.RunResponsive {
+			details += "; e2e and selected examiner browser tests ran successfully"
+		} else {
+			details += "; e2e ran successfully; examiner browser checks skipped by flags"
+		}
 	} else {
 		details += "; e2e and examiner browser tests skipped because -run-e2e=false"
 	}

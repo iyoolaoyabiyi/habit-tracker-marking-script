@@ -17,9 +17,10 @@ It can inspect either:
 - route, splash, auth, habit, accessibility, and PWA markers
 - required test files and exact test titles
 - Vitest coverage configuration for `src/lib`
+- runtime coverage summary parsing for the 80% `src/lib` line threshold
 - README coverage
 - mentor hidden-marker AI audit
-- optional executable verification by running build and test scripts
+- optional executable verification by running build, submitted tests, and examiner-owned runtime/browser tests
 
 ## Prerequisites
 
@@ -75,6 +76,12 @@ Run the binary:
   Run build and test scripts. Default: `true`.
 - `-run-e2e`
   Run the Playwright E2E suite during executable verification. Default: `true`.
+- `-run-offline`
+  Run examiner-owned offline/PWA browser checks when E2E is enabled. Default: `true`.
+- `-run-accessibility`
+  Run examiner-owned accessibility browser checks when E2E is enabled. Default: `true`.
+- `-run-responsive`
+  Run examiner-owned responsive layout browser checks when E2E is enabled. Default: `true`.
 
 ## Recommended Commands
 
@@ -113,11 +120,38 @@ Useful when the submission already has `node_modules` installed:
 The tool prints one line per check group:
 
 ```text
-[PASS] required files
-[FAIL] mentor ai check
+[PASS] structure / required files
+[FAIL] quality gates / mentor ai check
 ```
 
-Each failure includes a short reason so an examiner can see what broke without reading the code first.
+Each failure includes the relevant requirements section where one is available and a short reason so an examiner can see what broke without reading the code first.
+
+## Enforcement Coverage
+
+The examiner groups checks into:
+
+- `structure`
+- `static contracts`
+- `source behavior`
+- `runtime behavior`
+- `pwa`
+- `quality gates`
+- `documentation`
+- `meta`
+
+Static checks enforce required paths, package markers, exported contracts, test IDs, README sections, and source behavior evidence. Runtime checks run the submitted build and tests, generate a coverage summary, and execute examiner-owned Vitest tests. Browser checks run examiner-owned Playwright flows for auth, habit CRUD, user isolation, PWA/offline behavior, accessibility, and responsive overflow.
+
+## Fixture Coverage
+
+The Go test suite includes fixture-style tests for examiner behavior, including shallow submitted-test detection and coverage-summary parsing. Run them with:
+
+```bash
+GOCACHE=/tmp/go-build-cache go test ./...
+```
+
+## Remaining Manual Review
+
+The examiner is intentionally stricter than simple string scanning, but it still cannot fully judge product quality. Human review should still inspect visual polish, copy quality, overall UX, code maintainability, and whether the implementation is genuinely understandable rather than merely shaped to satisfy automated checks.
 
 ## Cross-Platform Builds
 

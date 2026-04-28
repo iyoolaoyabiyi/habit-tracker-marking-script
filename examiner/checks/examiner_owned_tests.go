@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func runExaminerRuntimeTests(root string) (string, error) {
@@ -17,9 +18,14 @@ func runExaminerRuntimeTests(root string) (string, error) {
 	return runCommand(root, "npm", "exec", "--", "vitest", "run", "tests/unit/examiner-runtime.test.ts", "--environment", "jsdom")
 }
 
-func runExaminerBrowserTests(root string) (string, error) {
+func runExaminerBrowserTests(root string, options RuntimeOptions) (string, error) {
 	testPath := filepath.Join(root, "tests", "e2e", "examiner-browser.spec.ts")
-	cleanup, err := writeTemporaryFile(testPath, examinerBrowserTestSource)
+	source := examinerBrowserTestSource
+	source = strings.ReplaceAll(source, "__RUN_OFFLINE__", fmt.Sprintf("%t", options.RunOffline))
+	source = strings.ReplaceAll(source, "__RUN_ACCESSIBILITY__", fmt.Sprintf("%t", options.RunAccessibility))
+	source = strings.ReplaceAll(source, "__RUN_RESPONSIVE__", fmt.Sprintf("%t", options.RunResponsive))
+
+	cleanup, err := writeTemporaryFile(testPath, source)
 	if err != nil {
 		return "", err
 	}
@@ -184,6 +190,7 @@ test.describe('examiner-owned browser verification', () => {
   });
 
   test('verifies PWA manifest, icons, service worker, and offline shell', async ({ page, context, request }) => {
+    test.skip(!__RUN_OFFLINE__, 'offline/PWA examiner check disabled');
     await context.clearCookies();
     await page.goto('/');
     await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', /manifest\.json/);
@@ -206,21 +213,16 @@ test.describe('examiner-owned browser verification', () => {
     await context.setOffline(false);
   });
 
-  test('verifies accessible controls and responsive layout at required widths', async ({ page }) => {
+  test('verifies accessible controls', async ({ page }) => {
+    test.skip(!__RUN_ACCESSIBILITY__, 'accessibility examiner check disabled');
     await seedStorage(page, {
       users: [existingUser],
       session: { userId: existingUser.id, email: existingUser.email },
       habits: [existingHabit],
     });
 
-    for (const width of [320, 768, 1280]) {
-      await page.setViewportSize({ width, height: 720 });
-      await page.goto('/dashboard');
-      await expect(page.getByTestId('dashboard-page')).toBeVisible();
-      const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
-      expect(hasHorizontalOverflow).toBeFalsy();
-    }
-
+    await page.goto('/dashboard');
+    await expect(page.getByTestId('dashboard-page')).toBeVisible();
     await page.getByTestId('create-habit-button').click();
     const unlabeledControls = await page.locator('input, textarea, select').evaluateAll((controls) =>
       controls
@@ -238,6 +240,23 @@ test.describe('examiner-owned browser verification', () => {
     await page.keyboard.press('Tab');
     const activeElementTag = await page.evaluate(() => document.activeElement?.tagName);
     expect(['A', 'BUTTON', 'INPUT', 'TEXTAREA', 'SELECT']).toContain(activeElementTag);
+  });
+
+  test('verifies responsive layout at required widths', async ({ page }) => {
+    test.skip(!__RUN_RESPONSIVE__, 'responsive examiner check disabled');
+    await seedStorage(page, {
+      users: [existingUser],
+      session: { userId: existingUser.id, email: existingUser.email },
+      habits: [existingHabit],
+    });
+
+    for (const width of [320, 768, 1280]) {
+      await page.setViewportSize({ width, height: 720 });
+      await page.goto('/dashboard');
+      await expect(page.getByTestId('dashboard-page')).toBeVisible();
+      const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+      expect(hasHorizontalOverflow).toBeFalsy();
+    }
   });
 });
 `

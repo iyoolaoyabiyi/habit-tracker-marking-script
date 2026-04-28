@@ -19,6 +19,9 @@ func main() {
 	installDeps := flag.Bool("install-deps", true, "install JavaScript dependencies before running executable checks")
 	runCommands := flag.Bool("run-commands", true, "run build and test scripts")
 	runE2E := flag.Bool("run-e2e", true, "run the Playwright end-to-end suite during executable verification")
+	runOffline := flag.Bool("run-offline", true, "run examiner-owned offline/PWA browser checks when E2E is enabled")
+	runAccessibility := flag.Bool("run-accessibility", true, "run examiner-owned accessibility browser checks when E2E is enabled")
+	runResponsive := flag.Bool("run-responsive", true, "run examiner-owned responsive layout browser checks when E2E is enabled")
 	flag.Parse()
 
 	root, cleanup, err := resolveRepo(*repoPath, *keepClone)
@@ -33,9 +36,12 @@ func main() {
 	fmt.Printf("Examining repository: %s\n\n", root)
 
 	options := checks.RuntimeOptions{
-		InstallDeps: *installDeps,
-		RunCommands: *runCommands,
-		RunE2E:      *runE2E,
+		InstallDeps:      *installDeps,
+		RunCommands:      *runCommands,
+		RunE2E:           *runE2E,
+		RunOffline:       *runOffline,
+		RunAccessibility: *runAccessibility,
+		RunResponsive:    *runResponsive,
 	}
 
 	results := checks.RunAll(root, options)
@@ -48,7 +54,7 @@ func main() {
 			failed++
 		}
 
-		fmt.Printf("[%s] %s\n", status, result.Name)
+		fmt.Printf("[%s] %s / %s\n", status, result.Category, result.Name)
 		if result.Details != "" {
 			fmt.Printf("       %s\n", result.Details)
 		}
