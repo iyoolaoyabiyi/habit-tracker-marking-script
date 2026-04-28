@@ -83,7 +83,11 @@ func fail(name, details string) Result {
 	if requirement != "" && !strings.HasPrefix(details, "section ") {
 		details = "section " + requirement + ": " + details
 	}
-	return Result{Category: categoryForCheck(name), Name: name, Requirement: requirement, Score: scoreForCheck(name), Earned: 0, Passed: false, Details: details}
+	earned := 0.0
+	if name == "mentor ai check" {
+		earned = -1.0
+	}
+	return Result{Category: categoryForCheck(name), Name: name, Requirement: requirement, Score: scoreForCheck(name), Earned: earned, Passed: false, Details: details}
 }
 
 func categoryForCheck(name string) string {

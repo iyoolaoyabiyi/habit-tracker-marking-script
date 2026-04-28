@@ -82,6 +82,27 @@ func TestScoreWeightsTotalThirteen(t *testing.T) {
 	}
 }
 
+func TestMentorAICheckFailureCarriesNegativeScore(t *testing.T) {
+	root := t.TempDir()
+	writeFixtureFile(t, root, "tests/unit/streaks.test.ts", `
+import { describe } from 'vitest';
+
+/* MENTOR_TRACE_STAGE3_HABIT_A91 */
+describe('calculateCurrentStreak', () => {});
+`)
+
+	result := checkMentorAICheck(root)
+	if result.Passed {
+		t.Fatalf("expected mentor AI check to fail")
+	}
+	if result.Earned >= 0 {
+		t.Fatalf("expected negative earned score, got %v", result.Earned)
+	}
+	if result.Score != 0 {
+		t.Fatalf("expected mentor AI check to remain outside possible score, got %v", result.Score)
+	}
+}
+
 func writeFixtureFile(t *testing.T, root, rel, content string) {
 	t.Helper()
 	path := filepath.Join(root, rel)

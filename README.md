@@ -19,6 +19,10 @@ No separate Go dependency installation step is required. The examiner is a Go mo
 
 ```bash
 GOCACHE=/tmp/go-build-cache go run . -repo /path/to/submission
+
+# or 
+
+go run . -repo /path/to/submission
 ```
 
 For a static-only review that does not install or execute the submitted app:
@@ -161,7 +165,7 @@ Each failure includes the relevant requirements section where one is available a
 
 ## Scoring
 
-The examiner reports a score for each check and a final total out of 13 points. Passing a check earns its full weight; failing a check earns zero for that check. Meta checks and the mentor-marker audit remain pass/fail gates and do not add points.
+The examiner reports a score for each check and a final total out of 13 points. Passing a scored check earns its full weight; failing a scored check earns zero for that check. The mentor-marker audit remains outside the possible-point total, but a failure carries a negative earned score.
 
 ## Enforcement Coverage
 

@@ -64,6 +64,11 @@ func checkExecutableVerification(root string, options RuntimeOptions) Result {
 
 	var browserOutput string
 	if options.RunE2E && (options.RunOffline || options.RunAccessibility || options.RunResponsive) {
+		buildOutput, err := runCommand(root, "npm", "run", "build")
+		if err != nil {
+			return fail("executable verification", "npm run build before examiner browser tests failed:\n"+tail(buildOutput, 40))
+		}
+
 		browserOutput, err = runExaminerBrowserTests(root, options)
 		if err != nil {
 			return fail("executable verification", "examiner-owned browser tests failed:\n"+tail(browserOutput, 100))
