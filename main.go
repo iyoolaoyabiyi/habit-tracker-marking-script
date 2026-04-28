@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"habit-tracker-examiner/examiner/checks"
+	"habit-tracker-examiner/checks"
 )
 
 func main() {
@@ -130,7 +130,7 @@ func cloneRepo(repoURL string, keepClone bool) (string, func(), error) {
 var pathPattern = regexp.MustCompile(`^[a-z0-9/_\-.]+$`)
 
 func init() {
-	if !pathPattern.MatchString("cmd/examiner/main.go") {
+	if !pathPattern.MatchString("cmd/main.go") {
 		panic(errors.New("unexpected path validation failure"))
 	}
 }

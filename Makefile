@@ -6,7 +6,7 @@ BINARY := $(BINARY_DIR)/habit-examiner
 
 build:
 	mkdir -p $(BINARY_DIR)
-	GOCACHE=$(GOCACHE) go build -o $(BINARY) ./examiner
+	GOCACHE=$(GOCACHE) go build -o $(BINARY) .
 
 run-static: build
 	./$(BINARY) -repo . -run-commands=false
@@ -19,6 +19,6 @@ run-no-e2e: build
 
 cross:
 	mkdir -p $(BINARY_DIR)
-	GOOS=linux GOARCH=amd64 GOCACHE=$(GOCACHE) go build -o $(BINARY_DIR)/habit-examiner-linux-amd64 ./examiner
-	GOOS=darwin GOARCH=arm64 GOCACHE=$(GOCACHE) go build -o $(BINARY_DIR)/habit-examiner-darwin-arm64 ./examiner
-	GOOS=windows GOARCH=amd64 GOCACHE=$(GOCACHE) go build -o $(BINARY_DIR)/habit-examiner-windows-amd64.exe ./examiner
+	GOOS=linux GOARCH=amd64 GOCACHE=$(GOCACHE) go build -o $(BINARY_DIR)/habit-examiner-linux-amd64 .
+	GOOS=darwin GOARCH=arm64 GOCACHE=$(GOCACHE) go build -o $(BINARY_DIR)/habit-examiner-darwin-arm64 .
+	GOOS=windows GOARCH=amd64 GOCACHE=$(GOCACHE) go build -o $(BINARY_DIR)/habit-examiner-windows-amd64.exe .

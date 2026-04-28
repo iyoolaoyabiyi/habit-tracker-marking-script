@@ -7,6 +7,54 @@ It can inspect either:
 - a local repository path
 - a GitHub repository URL
 
+## Setup And Use
+
+From the `cmd` directory, verify Go is available:
+
+```bash
+go version
+```
+
+No separate Go dependency installation step is required. The examiner is a Go module and can be run directly from source:
+
+```bash
+GOCACHE=/tmp/go-build-cache go run . -repo /path/to/submission
+```
+
+For a static-only review that does not install or execute the submitted app:
+
+```bash
+GOCACHE=/tmp/go-build-cache go run . -repo /path/to/submission -run-commands=false
+```
+
+To examine a GitHub repository directly:
+
+```bash
+GOCACHE=/tmp/go-build-cache go run . -repo https://github.com/owner/repo
+```
+
+## Generate A Binary
+
+Build a reusable local binary:
+
+```bash
+mkdir -p bin
+GOCACHE=/tmp/go-build-cache go build -o bin/habit-examiner .
+```
+
+Run the binary:
+
+```bash
+./bin/habit-examiner -repo /path/to/submission
+```
+
+You can also use the Makefile:
+
+```bash
+make build
+./bin/habit-examiner -repo /path/to/submission
+```
+
 ## What It Checks
 
 - required files and route files
@@ -28,21 +76,6 @@ It can inspect either:
 - `git`
 - `npm` for executable verification
 - Playwright browser dependencies if you run E2E checks
-
-## Build
-
-Build a local binary:
-
-```bash
-mkdir -p bin
-GOCACHE=/tmp/go-build-cache go build -o bin/habit-examiner ./examiner
-```
-
-Run the binary:
-
-```bash
-./bin/habit-examiner -repo /path/to/submission
-```
 
 ## Usage
 
@@ -164,9 +197,9 @@ Build release binaries from the `cmd` directory:
 ```bash
 mkdir -p bin
 
-GOOS=linux GOARCH=amd64   GOCACHE=/tmp/go-build-cache go build -o bin/habit-examiner-linux-amd64 ./examiner
-GOOS=darwin GOARCH=arm64  GOCACHE=/tmp/go-build-cache go build -o bin/habit-examiner-darwin-arm64 ./examiner
-GOOS=windows GOARCH=amd64 GOCACHE=/tmp/go-build-cache go build -o bin/habit-examiner-windows-amd64.exe ./examiner
+GOOS=linux GOARCH=amd64   GOCACHE=/tmp/go-build-cache go build -o bin/habit-examiner-linux-amd64 .
+GOOS=darwin GOARCH=arm64  GOCACHE=/tmp/go-build-cache go build -o bin/habit-examiner-darwin-arm64 .
+GOOS=windows GOARCH=amd64 GOCACHE=/tmp/go-build-cache go build -o bin/habit-examiner-windows-amd64.exe .
 ```
 
 ## Notes
