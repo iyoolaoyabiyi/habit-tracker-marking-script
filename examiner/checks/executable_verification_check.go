@@ -53,11 +53,24 @@ func checkExecutableVerification(root string, options RuntimeOptions) Result {
 		}
 	}
 
-	details := "build, unit, and integration scripts ran successfully"
+	runtimeOutput, err := runExaminerRuntimeTests(root)
+	if err != nil {
+		return fail("executable verification", "examiner-owned runtime tests failed:\n"+tail(runtimeOutput, 80))
+	}
+
+	var browserOutput string
 	if options.RunE2E {
-		details += "; e2e script ran successfully"
+		browserOutput, err = runExaminerBrowserTests(root)
+		if err != nil {
+			return fail("executable verification", "examiner-owned browser tests failed:\n"+tail(browserOutput, 100))
+		}
+	}
+
+	details := "build, unit, integration, and examiner runtime tests ran successfully"
+	if options.RunE2E {
+		details += "; e2e and examiner browser tests ran successfully"
 	} else {
-		details += "; e2e script skipped because -run-e2e=false"
+		details += "; e2e and examiner browser tests skipped because -run-e2e=false"
 	}
 
 	return pass("executable verification", details)

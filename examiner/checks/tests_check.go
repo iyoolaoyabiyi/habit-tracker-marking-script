@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -11,6 +12,7 @@ func checkTests(root string) Result {
 	type testSpec struct {
 		file     string
 		patterns []string
+		intents  []string
 	}
 
 	specs := []testSpec{
@@ -22,6 +24,7 @@ func checkTests(root string) Result {
 				`trims outer spaces and collapses repeated internal spaces`,
 				`removes non alphanumeric characters except hyphens`,
 			},
+			intents: []string{`getHabitSlug`, `expect\s*\(`, `toBe\s*\(`},
 		},
 		{
 			file: "tests/unit/validators.test.ts",
@@ -31,6 +34,7 @@ func checkTests(root string) Result {
 				`returns an error when habit name exceeds 60 characters`,
 				`returns a trimmed value when habit name is valid`,
 			},
+			intents: []string{`validateHabitName`, `expect\s*\(`, `Habit name is required`, `60 characters`},
 		},
 		{
 			file: "tests/unit/streaks.test.ts",
@@ -42,6 +46,7 @@ func checkTests(root string) Result {
 				`ignores duplicate completion dates`,
 				`breaks the streak when a calendar day is missing`,
 			},
+			intents: []string{`calculateCurrentStreak`, `expect\s*\(`, `2026-[0-9]{2}-[0-9]{2}`},
 		},
 		{
 			file: "tests/unit/habits.test.ts",
@@ -52,6 +57,7 @@ func checkTests(root string) Result {
 				`does not mutate the original habit object`,
 				`does not return duplicate completion dates`,
 			},
+			intents: []string{`toggleHabitCompletion`, `expect\s*\(`, `completions`},
 		},
 		{
 			file: "tests/integration/auth-flow.test.tsx",
@@ -62,6 +68,7 @@ func checkTests(root string) Result {
 				`submits the login form and stores the active session`,
 				`shows an error for invalid login credentials`,
 			},
+			intents: []string{`@testing-library/react`, `userEvent`, `localStorage`, `auth-login-email`, `auth-signup-email`, `expect\s*\(`},
 		},
 		{
 			file: "tests/integration/habit-form.test.tsx",
@@ -73,6 +80,7 @@ func checkTests(root string) Result {
 				`deletes a habit only after explicit confirmation`,
 				`toggles completion and updates the streak display`,
 			},
+			intents: []string{`@testing-library/react`, `userEvent`, `habit-name-input`, `confirm-delete-button`, `habit-complete`, `expect\s*\(`},
 		},
 		{
 			file: "tests/e2e/app.spec.ts",
@@ -89,6 +97,7 @@ func checkTests(root string) Result {
 				`logs out and redirects to /login`,
 				`loads the cached app shell when offline after the app has been loaded once`,
 			},
+			intents: []string{`@playwright/test`, `page\.goto`, `waitForURL`, `getByTestId`, `localStorage`, `setOffline`, `expect\s*\(`},
 		},
 	}
 
@@ -103,7 +112,19 @@ func checkTests(root string) Result {
 				return fail("test suite contract", fmt.Sprintf("%s missing %q", spec.file, pattern))
 			}
 		}
+		for _, pattern := range spec.intents {
+			ok, err := regexp.MatchString(pattern, text)
+			if err != nil {
+				return fail("test suite contract", fmt.Sprintf("%s has invalid examiner regex %q: %v", spec.file, pattern, err))
+			}
+			if !ok {
+				return fail("test suite contract", fmt.Sprintf("%s missing intent evidence matching %q", spec.file, pattern))
+			}
+		}
+		if assertions := regexp.MustCompile(`expect\s*\(`).FindAllStringIndex(text, -1); len(assertions) < 2 {
+			return fail("test suite contract", fmt.Sprintf("%s has too few assertions to be meaningful", spec.file))
+		}
 	}
 
-	return pass("test suite contract", "required test files, describe blocks, and titles found")
+	return pass("test suite contract", "required test files, titles, assertions, and intent markers found")
 }
