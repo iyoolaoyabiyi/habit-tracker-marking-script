@@ -19,9 +19,7 @@ No separate Go dependency installation step is required. The examiner is a Go mo
 
 ```bash
 GOCACHE=/tmp/go-build-cache go run . -repo /path/to/submission
-
 # or 
-
 go run . -repo /path/to/submission
 ```
 

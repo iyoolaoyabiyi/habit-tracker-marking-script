@@ -126,9 +126,14 @@ const existingHabit = {
 
 async function seedStorage(page, values) {
   await page.addInitScript((storageValues) => {
+    if (window.sessionStorage.getItem('habit-tracker-examiner-seeded') === 'true') {
+      return;
+    }
+
     window.localStorage.setItem('habit-tracker-users', JSON.stringify(storageValues.users ?? []));
     window.localStorage.setItem('habit-tracker-session', JSON.stringify(storageValues.session ?? null));
     window.localStorage.setItem('habit-tracker-habits', JSON.stringify(storageValues.habits ?? []));
+    window.sessionStorage.setItem('habit-tracker-examiner-seeded', 'true');
   }, values);
 }
 
