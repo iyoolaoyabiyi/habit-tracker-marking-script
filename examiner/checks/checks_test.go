@@ -49,6 +49,39 @@ func TestCoverageSummaryRejectsLowCoverage(t *testing.T) {
 	}
 }
 
+func TestScoreWeightsTotalThirteen(t *testing.T) {
+	var results []Result
+	for _, name := range []string{
+		"required stack",
+		"required files",
+		"package scripts",
+		"no remote backend markers",
+		"storage keys",
+		"local persistence usage",
+		"route contract files",
+		"splash timing",
+		"type contracts",
+		"utility contracts",
+		"naming conventions",
+		"ui contract markers",
+		"auth behavior markers",
+		"habit behavior markers",
+		"source behavior markers",
+		"accessibility markers",
+		"pwa contract",
+		"test suite contract",
+		"coverage config",
+		"readme requirements",
+		"executable verification",
+	} {
+		results = append(results, pass(name, ""))
+	}
+	earned, possible := TotalScore(results)
+	if earned != 13 || possible != 13 {
+		t.Fatalf("expected score weights to total 13, got earned=%v possible=%v", earned, possible)
+	}
+}
+
 func writeFixtureFile(t *testing.T, root, rel, content string) {
 	t.Helper()
 	path := filepath.Join(root, rel)

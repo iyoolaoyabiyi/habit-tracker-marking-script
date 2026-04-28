@@ -54,18 +54,21 @@ func main() {
 			failed++
 		}
 
-		fmt.Printf("[%s] %s / %s\n", status, result.Category, result.Name)
+		fmt.Printf("[%s] %s / %s (%.2f/%.2f)\n", status, result.Category, result.Name, result.Earned, result.Score)
 		if result.Details != "" {
 			fmt.Printf("       %s\n", result.Details)
 		}
 	}
+	earned, possible := checks.TotalScore(results)
 
 	if failed > 0 {
-		fmt.Printf("\n%d check group(s) failed\n", failed)
+		fmt.Printf("\nScore: %.2f/%.2f\n", earned, possible)
+		fmt.Printf("%d check group(s) failed\n", failed)
 		os.Exit(1)
 	}
 
-	fmt.Println("\nAll examiner checks passed")
+	fmt.Printf("\nScore: %.2f/%.2f\n", earned, possible)
+	fmt.Println("All examiner checks passed")
 }
 
 func resolveRepo(repoArg string, keepClone bool) (string, func(), error) {

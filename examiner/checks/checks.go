@@ -12,6 +12,8 @@ type Result struct {
 	Category    string
 	Name        string
 	Requirement string
+	Score       float64
+	Earned      float64
 	Passed      bool
 	Details     string
 }
@@ -68,7 +70,12 @@ func RunAll(root string, options RuntimeOptions) []Result {
 }
 
 func pass(name, details string) Result {
-	return Result{Category: categoryForCheck(name), Name: name, Requirement: requirementForCheck(name), Passed: true, Details: details}
+	score := scoreForCheck(name)
+	return Result{Category: categoryForCheck(name), Name: name, Requirement: requirementForCheck(name), Score: score, Earned: score, Passed: true, Details: details}
+}
+
+func skip(name, details string) Result {
+	return Result{Category: categoryForCheck(name), Name: name, Requirement: requirementForCheck(name), Score: scoreForCheck(name), Earned: 0, Passed: true, Details: details}
 }
 
 func fail(name, details string) Result {
@@ -76,7 +83,7 @@ func fail(name, details string) Result {
 	if requirement != "" && !strings.HasPrefix(details, "section ") {
 		details = "section " + requirement + ": " + details
 	}
-	return Result{Category: categoryForCheck(name), Name: name, Requirement: requirement, Passed: false, Details: details}
+	return Result{Category: categoryForCheck(name), Name: name, Requirement: requirement, Score: scoreForCheck(name), Earned: 0, Passed: false, Details: details}
 }
 
 func categoryForCheck(name string) string {
@@ -136,6 +143,41 @@ func requirementForCheck(name string) string {
 		"executable verification":   "4,9,11-18",
 	}
 	return requirements[name]
+}
+
+func scoreForCheck(name string) float64 {
+	scores := map[string]float64{
+		"required stack":            0.75,
+		"required files":            1.00,
+		"package scripts":           0.50,
+		"no remote backend markers": 0.25,
+		"storage keys":              0.50,
+		"local persistence usage":   0.50,
+		"route contract files":      0.75,
+		"splash timing":             0.25,
+		"type contracts":            0.50,
+		"utility contracts":         0.75,
+		"naming conventions":        0.25,
+		"ui contract markers":       0.75,
+		"auth behavior markers":     0.50,
+		"habit behavior markers":    0.50,
+		"source behavior markers":   1.00,
+		"accessibility markers":     0.75,
+		"pwa contract":              0.75,
+		"test suite contract":       1.00,
+		"coverage config":           0.50,
+		"readme requirements":       0.25,
+		"executable verification":   1.00,
+	}
+	return scores[name]
+}
+
+func TotalScore(results []Result) (earned, possible float64) {
+	for _, result := range results {
+		possible += result.Score
+		earned += result.Earned
+	}
+	return earned, possible
 }
 
 func runCommand(dir, name string, args ...string) (string, error) {

@@ -10,7 +10,7 @@ import (
 
 func checkExecutableVerification(root string, options RuntimeOptions) Result {
 	if !options.RunCommands {
-		return pass("executable verification", "skipped because -run-commands=false")
+		return skip("executable verification", "skipped because -run-commands=false")
 	}
 
 	if _, err := exec.LookPath("npm"); err != nil {

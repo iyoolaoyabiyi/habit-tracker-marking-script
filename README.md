@@ -126,6 +126,10 @@ The tool prints one line per check group:
 
 Each failure includes the relevant requirements section where one is available and a short reason so an examiner can see what broke without reading the code first.
 
+## Scoring
+
+The examiner reports a score for each check and a final total out of 13 points. Passing a check earns its full weight; failing a check earns zero for that check. Meta checks and the mentor-marker audit remain pass/fail gates and do not add points.
+
 ## Enforcement Coverage
 
 The examiner groups checks into:
