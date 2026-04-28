@@ -90,6 +90,36 @@ func fail(name, details string) Result {
 	return Result{Category: categoryForCheck(name), Name: name, Requirement: requirement, Score: scoreForCheck(name), Earned: earned, Passed: false, Details: details}
 }
 
+func failWithIssues(name string, issues []string) Result {
+	if len(issues) == 0 {
+		return pass(name, "")
+	}
+	return fail(name, formatIssues(issues))
+}
+
+func formatIssues(issues []string) string {
+	if len(issues) == 0 {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.WriteString("Issues found:")
+	for _, issue := range issues {
+		builder.WriteString("\n- ")
+		builder.WriteString(issue)
+	}
+	return builder.String()
+}
+
+func readFileIssue(root, rel string, issues *[]string) (string, bool) {
+	content, err := os.ReadFile(filepath.Join(root, rel))
+	if err != nil {
+		*issues = append(*issues, rel+" could not be read: "+err.Error())
+		return "", false
+	}
+	return string(content), true
+}
+
 func categoryForCheck(name string) string {
 	categories := map[string]string{
 		"spec checklist":            "meta",

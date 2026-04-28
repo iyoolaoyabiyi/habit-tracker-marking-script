@@ -10,16 +10,32 @@ import (
 func checkPWAContracts(root string) Result {
 	content, err := os.ReadFile(filepath.Join(root, "public/manifest.json"))
 	if err != nil {
-		return fail("pwa contract", err.Error())
+		return failWithIssues("pwa contract", []string{"public/manifest.json could not be read: " + err.Error()})
 	}
 
 	var mf manifest
 	if err := json.Unmarshal(content, &mf); err != nil {
-		return fail("pwa contract", "invalid manifest.json: "+err.Error())
+		return failWithIssues("pwa contract", []string{"public/manifest.json is invalid JSON: " + err.Error()})
 	}
 
-	if mf.Name == "" || mf.ShortName == "" || mf.StartURL == "" || mf.Display == "" || mf.BackgroundColor == "" || mf.ThemeColor == "" {
-		return fail("pwa contract", "manifest.json is missing one or more required fields")
+	var issues []string
+	if mf.Name == "" {
+		issues = append(issues, "manifest.json is missing name")
+	}
+	if mf.ShortName == "" {
+		issues = append(issues, "manifest.json is missing short_name")
+	}
+	if mf.StartURL == "" {
+		issues = append(issues, "manifest.json is missing start_url")
+	}
+	if mf.Display == "" {
+		issues = append(issues, "manifest.json is missing display")
+	}
+	if mf.BackgroundColor == "" {
+		issues = append(issues, "manifest.json is missing background_color")
+	}
+	if mf.ThemeColor == "" {
+		issues = append(issues, "manifest.json is missing theme_color")
 	}
 
 	var has192, has512 bool
@@ -32,15 +48,25 @@ func checkPWAContracts(root string) Result {
 		}
 	}
 	if !has192 || !has512 {
-		return fail("pwa contract", "manifest.json is missing required 192/512 icons")
+		if !has192 {
+			issues = append(issues, "manifest.json is missing required 192x192 icon")
+		}
+		if !has512 {
+			issues = append(issues, "manifest.json is missing required 512x512 icon")
+		}
 	}
 
 	swContent, err := os.ReadFile(filepath.Join(root, "public/sw.js"))
 	if err != nil {
-		return fail("pwa contract", err.Error())
-	}
-	if !strings.Contains(string(swContent), "caches") || !strings.Contains(string(swContent), "fetch") {
-		return fail("pwa contract", "service worker does not appear to cache app shell requests")
+		issues = append(issues, "public/sw.js could not be read: "+err.Error())
+	} else {
+		swText := string(swContent)
+		if !strings.Contains(swText, "caches") {
+			issues = append(issues, "public/sw.js is missing caches usage")
+		}
+		if !strings.Contains(swText, "fetch") {
+			issues = append(issues, "public/sw.js is missing fetch handling")
+		}
 	}
 
 	registrationText, err := readExistingFiles(root, []string{
@@ -50,10 +76,18 @@ func checkPWAContracts(root string) Result {
 		"src/components/shared/SplashScreen.tsx",
 	})
 	if err != nil {
-		return fail("pwa contract", err.Error())
+		issues = append(issues, "required app/shared files for service worker registration could not be read: "+err.Error())
+	} else {
+		if !strings.Contains(registrationText, "serviceWorker") {
+			issues = append(issues, "service worker registration missing serviceWorker marker")
+		}
+		if !strings.Contains(registrationText, "sw.js") {
+			issues = append(issues, "service worker registration missing sw.js marker")
+		}
 	}
-	if !strings.Contains(registrationText, "serviceWorker") || !strings.Contains(registrationText, "sw.js") {
-		return fail("pwa contract", "service worker registration not found in required app/shared files")
+
+	if len(issues) > 0 {
+		return failWithIssues("pwa contract", issues)
 	}
 
 	return pass("pwa contract", "manifest, icons, service worker, and registration found")

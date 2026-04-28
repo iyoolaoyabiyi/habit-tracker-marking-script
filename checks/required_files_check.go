@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func checkRequiredFiles(root string) Result {
@@ -54,7 +53,11 @@ func checkRequiredFiles(root string) Result {
 	}
 
 	if len(missing) > 0 {
-		return fail("required files", "missing: "+strings.Join(missing, ", "))
+		var issues []string
+		for _, rel := range missing {
+			issues = append(issues, "missing required path "+rel)
+		}
+		return failWithIssues("required files", issues)
 	}
 
 	return pass("required files", fmt.Sprintf("%d required paths present", len(required)))

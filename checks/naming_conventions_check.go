@@ -17,10 +17,11 @@ func checkNamingConventions(root string) Result {
 		"src/components/shared/SplashScreen.tsx",
 		"src/components/shared/ProtectedRoute.tsx",
 	}
+	var issues []string
 	for _, rel := range componentFiles {
 		base := filepath.Base(rel)
 		if matched, _ := regexp.MatchString(`^[A-Z][A-Za-z0-9]*\.tsx$`, base); !matched {
-			return fail("naming conventions", fmt.Sprintf("component file must use PascalCase: %s", rel))
+			issues = append(issues, fmt.Sprintf("component file must use PascalCase: %s", rel))
 		}
 	}
 
@@ -36,7 +37,7 @@ func checkNamingConventions(root string) Result {
 	for _, rel := range libFiles {
 		base := filepath.Base(rel)
 		if matched, _ := regexp.MatchString(`^[a-z0-9]+\.ts$`, base); !matched {
-			return fail("naming conventions", fmt.Sprintf("utility file must be lowercase: %s", rel))
+			issues = append(issues, fmt.Sprintf("utility file must be lowercase: %s", rel))
 		}
 	}
 
@@ -51,8 +52,12 @@ func checkNamingConventions(root string) Result {
 	}
 	for _, rel := range testFiles {
 		if _, err := os.Stat(filepath.Join(root, rel)); err != nil {
-			return fail("naming conventions", "missing required test file "+rel)
+			issues = append(issues, "missing required test file "+rel)
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("naming conventions", issues)
 	}
 
 	return pass("naming conventions", "component, utility, and required test file names match the contract")

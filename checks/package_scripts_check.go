@@ -11,7 +11,7 @@ import (
 func checkPackageScripts(root string) Result {
 	content, err := os.ReadFile(filepath.Join(root, "package.json"))
 	if err != nil {
-		return fail("package scripts", err.Error())
+		return failWithIssues("package scripts", []string{"package.json could not be read: " + err.Error()})
 	}
 
 	var pkg struct {
@@ -21,33 +21,38 @@ func checkPackageScripts(root string) Result {
 		return fail("package scripts", "invalid package.json: "+err.Error())
 	}
 
-	required := map[string][]string{
-		"dev":              {"next", "dev"},
-		"build":            {"next", "build"},
-		"start":            {"next", "start"},
-		"test:unit":        {"vitest", "run", "coverage"},
-		"test:integration": {"vitest", "run"},
-		"test:e2e":         {"playwright", "test"},
-		"test":             {"test:unit", "test:integration", "test:e2e"},
+	required := []struct {
+		name    string
+		markers []string
+	}{
+		{name: "dev", markers: []string{"next", "dev"}},
+		{name: "build", markers: []string{"next", "build"}},
+		{name: "start", markers: []string{"next", "start"}},
+		{name: "test:unit", markers: []string{"vitest", "run", "coverage"}},
+		{name: "test:integration", markers: []string{"vitest", "run"}},
+		{name: "test:e2e", markers: []string{"playwright", "test"}},
+		{name: "test", markers: []string{"test:unit", "test:integration", "test:e2e"}},
 	}
 	var missing, invalid []string
-	for name, markers := range required {
-		command, ok := pkg.Scripts[name]
+	for _, check := range required {
+		command, ok := pkg.Scripts[check.name]
 		if !ok {
-			missing = append(missing, name)
+			missing = append(missing, check.name)
 			continue
 		}
-		for _, marker := range markers {
+		for _, marker := range check.markers {
 			if !strings.Contains(command, marker) {
-				invalid = append(invalid, fmt.Sprintf("%s missing %q", name, marker))
+				invalid = append(invalid, fmt.Sprintf("%s missing %q", check.name, marker))
 			}
 		}
 	}
 	if len(missing) > 0 {
-		return fail("package scripts", "missing script(s): "+strings.Join(missing, ", "))
+		for _, name := range missing {
+			invalid = append(invalid, "package.json missing script "+name)
+		}
 	}
 	if len(invalid) > 0 {
-		return fail("package scripts", "script command marker mismatch: "+strings.Join(invalid, "; "))
+		return failWithIssues("package scripts", invalid)
 	}
 
 	return pass("package scripts", "all required script names and command markers present")

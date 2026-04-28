@@ -1,17 +1,14 @@
 package checks
 
-import (
-	"os"
-	"path/filepath"
-	"strings"
-)
+import "strings"
 
 func checkCoverageConfig(root string) Result {
-	content, err := os.ReadFile(filepath.Join(root, "vitest.config.ts"))
-	if err != nil {
-		return fail("coverage config", err.Error())
+	var issues []string
+	content, ok := readFileIssue(root, "vitest.config.ts", &issues)
+	if !ok {
+		return failWithIssues("coverage config", issues)
 	}
-	text := string(content)
+	text := content
 	required := []string{
 		"coverage:",
 		"thresholds:",
@@ -20,8 +17,12 @@ func checkCoverageConfig(root string) Result {
 	}
 	for _, marker := range required {
 		if !strings.Contains(text, marker) {
-			return fail("coverage config", "vitest.config.ts missing "+marker)
+			issues = append(issues, "vitest.config.ts missing "+marker)
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("coverage config", issues)
 	}
 
 	return pass("coverage config", "Vitest coverage threshold for src/lib is configured")

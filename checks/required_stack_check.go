@@ -11,7 +11,7 @@ import (
 func checkRequiredStack(root string) Result {
 	content, err := os.ReadFile(filepath.Join(root, "package.json"))
 	if err != nil {
-		return fail("required stack", err.Error())
+		return failWithIssues("required stack", []string{"package.json could not be read: " + err.Error()})
 	}
 
 	var pkg struct {
@@ -42,9 +42,10 @@ func checkRequiredStack(root string) Result {
 		"vitest",
 		"@testing-library/react",
 	}
+	var issues []string
 	for _, name := range requiredPackages {
 		if !hasPackage(name) {
-			return fail("required stack", "package.json missing package "+name)
+			issues = append(issues, "package.json missing package "+name)
 		}
 	}
 
@@ -93,14 +94,19 @@ func checkRequiredStack(root string) Result {
 	for _, check := range stackUsageChecks {
 		fileContent, err := os.ReadFile(filepath.Join(root, check.file))
 		if err != nil {
-			return fail("required stack", fmt.Sprintf("%s evidence missing: %v", check.label, err))
+			issues = append(issues, fmt.Sprintf("%s evidence missing: %s could not be read: %v", check.label, check.file, err))
+			continue
 		}
 		text := string(fileContent)
 		for _, pattern := range check.patterns {
 			if !strings.Contains(text, pattern) {
-				return fail("required stack", fmt.Sprintf("%s not clearly used; %s missing %q", check.label, check.file, pattern))
+				issues = append(issues, fmt.Sprintf("%s not clearly used; %s missing %q", check.label, check.file, pattern))
 			}
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("required stack", issues)
 	}
 
 	return pass("required stack", "required packages are declared and stack usage markers are present")

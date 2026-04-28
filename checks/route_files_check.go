@@ -2,8 +2,6 @@ package checks
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -20,17 +18,21 @@ func checkRouteFiles(root string) Result {
 		{file: "src/app/dashboard/page.tsx", contains: []string{"/login"}},
 	}
 
+	var issues []string
 	for _, check := range checks {
-		content, err := os.ReadFile(filepath.Join(root, check.file))
-		if err != nil {
-			return fail("route contract files", err.Error())
+		text, ok := readFileIssue(root, check.file, &issues)
+		if !ok {
+			continue
 		}
-		text := string(content)
 		for _, needle := range check.contains {
 			if !strings.Contains(text, needle) {
-				return fail("route contract files", fmt.Sprintf("%s missing %q", check.file, needle))
+				issues = append(issues, fmt.Sprintf("%s missing %q", check.file, needle))
 			}
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("route contract files", issues)
 	}
 
 	return pass("route contract files", "route files and core route markers found")

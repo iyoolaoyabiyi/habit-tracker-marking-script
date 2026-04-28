@@ -34,15 +34,17 @@ func checkUIContracts(root string) Result {
 		},
 	}
 
+	var issues []string
 	for _, check := range fileChecks {
 		content, err := os.ReadFile(filepath.Join(root, check.file))
 		if err != nil {
-			return fail("ui contract markers", err.Error())
+			issues = append(issues, check.file+" could not be read: "+err.Error())
+			continue
 		}
 		text := string(content)
 		for _, pattern := range check.patterns {
 			if !strings.Contains(text, pattern) {
-				return fail("ui contract markers", fmt.Sprintf("%s missing %q", check.file, pattern))
+				issues = append(issues, fmt.Sprintf("%s missing %q", check.file, pattern))
 			}
 		}
 	}
@@ -54,12 +56,17 @@ func checkUIContracts(root string) Result {
 		"src/components/habits/HabitCard.tsx",
 	})
 	if err != nil {
-		return fail("ui contract markers", err.Error())
-	}
-	for _, pattern := range []string{`dashboard-page`, `empty-state`, `create-habit-button`, `auth-logout-button`} {
-		if !strings.Contains(dashboardText, pattern) {
-			return fail("ui contract markers", fmt.Sprintf("dashboard UI missing %q", pattern))
+		issues = append(issues, "dashboard UI files could not be read: "+err.Error())
+	} else {
+		for _, pattern := range []string{`dashboard-page`, `empty-state`, `create-habit-button`, `auth-logout-button`} {
+			if !strings.Contains(dashboardText, pattern) {
+				issues = append(issues, fmt.Sprintf("dashboard UI missing %q", pattern))
+			}
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("ui contract markers", issues)
 	}
 
 	return pass("ui contract markers", "required test ids and UI markers found")

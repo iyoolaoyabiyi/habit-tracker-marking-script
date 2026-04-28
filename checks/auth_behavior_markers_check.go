@@ -2,28 +2,15 @@ package checks
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
 func checkAuthBehaviorMarkers(root string) Result {
-	authContent, err := os.ReadFile(filepath.Join(root, "src/lib/auth.ts"))
-	if err != nil {
-		return fail("auth behavior markers", err.Error())
-	}
-	loginContent, err := os.ReadFile(filepath.Join(root, "src/components/auth/LoginForm.tsx"))
-	if err != nil {
-		return fail("auth behavior markers", err.Error())
-	}
-	signupContent, err := os.ReadFile(filepath.Join(root, "src/components/auth/SignupForm.tsx"))
-	if err != nil {
-		return fail("auth behavior markers", err.Error())
-	}
-	dashboardContent, err := os.ReadFile(filepath.Join(root, "src/app/dashboard/page.tsx"))
-	if err != nil {
-		return fail("auth behavior markers", err.Error())
-	}
+	var issues []string
+	authContent, _ := readFileIssue(root, "src/lib/auth.ts", &issues)
+	loginContent, _ := readFileIssue(root, "src/components/auth/LoginForm.tsx", &issues)
+	signupContent, _ := readFileIssue(root, "src/components/auth/SignupForm.tsx", &issues)
+	dashboardContent, _ := readFileIssue(root, "src/app/dashboard/page.tsx", &issues)
 
 	required := []struct {
 		text string
@@ -37,16 +24,20 @@ func checkAuthBehaviorMarkers(root string) Result {
 	}
 
 	sources := map[string]string{
-		"src/lib/auth.ts":                    string(authContent),
-		"src/components/auth/LoginForm.tsx":  string(loginContent),
-		"src/components/auth/SignupForm.tsx": string(signupContent),
-		"src/app/dashboard/page.tsx":         string(dashboardContent),
+		"src/lib/auth.ts":                    authContent,
+		"src/components/auth/LoginForm.tsx":  loginContent,
+		"src/components/auth/SignupForm.tsx": signupContent,
+		"src/app/dashboard/page.tsx":         dashboardContent,
 	}
 
 	for _, item := range required {
 		if !strings.Contains(sources[item.src], item.text) {
-			return fail("auth behavior markers", fmt.Sprintf("%s missing %q", item.src, item.text))
+			issues = append(issues, fmt.Sprintf("%s missing %q", item.src, item.text))
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("auth behavior markers", issues)
 	}
 
 	return pass("auth behavior markers", "auth error messages and redirects are clearly implemented")

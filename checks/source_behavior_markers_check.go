@@ -15,6 +15,7 @@ func checkSourceBehaviorMarkers(root string) Result {
 	}
 
 	files := map[string]string{}
+	var issues []string
 	for _, rel := range []string{
 		"src/lib/auth.ts",
 		"src/lib/habits.ts",
@@ -32,7 +33,9 @@ func checkSourceBehaviorMarkers(root string) Result {
 	} {
 		content, err := os.ReadFile(filepath.Join(root, rel))
 		if err != nil {
-			return fail("source behavior markers", err.Error())
+			issues = append(issues, rel+" could not be read: "+err.Error())
+			files[rel] = ""
+			continue
 		}
 		files[rel] = string(content)
 	}
@@ -59,17 +62,16 @@ func checkSourceBehaviorMarkers(root string) Result {
 		{"validator trims habit names", files["src/lib/validators.ts"], `\.trim\s*\(`},
 	}
 
-	var missing []string
 	for _, check := range checks {
 		if ok, err := regexp.MatchString(check.pattern, check.text); err != nil {
 			return fail("source behavior markers", fmt.Sprintf("invalid matcher for %s: %v", check.label, err))
 		} else if !ok {
-			missing = append(missing, check.label)
+			issues = append(issues, "missing behavior evidence: "+check.label)
 		}
 	}
 
-	if len(missing) > 0 {
-		return fail("source behavior markers", "missing behavior evidence: "+strings.Join(missing, ", "))
+	if len(issues) > 0 {
+		return failWithIssues("source behavior markers", issues)
 	}
 
 	return pass("source behavior markers", "auth, storage, habit ownership, CRUD, completion, and streak behavior evidence found")

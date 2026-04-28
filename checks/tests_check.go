@@ -101,15 +101,17 @@ func checkTests(root string) Result {
 		},
 	}
 
+	var issues []string
 	for _, spec := range specs {
 		content, err := os.ReadFile(filepath.Join(root, spec.file))
 		if err != nil {
-			return fail("test suite contract", err.Error())
+			issues = append(issues, spec.file+" could not be read: "+err.Error())
+			continue
 		}
 		text := string(content)
 		for _, pattern := range spec.patterns {
 			if !strings.Contains(text, pattern) {
-				return fail("test suite contract", fmt.Sprintf("%s missing %q", spec.file, pattern))
+				issues = append(issues, fmt.Sprintf("%s missing %q", spec.file, pattern))
 			}
 		}
 		for _, pattern := range spec.intents {
@@ -118,12 +120,16 @@ func checkTests(root string) Result {
 				return fail("test suite contract", fmt.Sprintf("%s has invalid examiner regex %q: %v", spec.file, pattern, err))
 			}
 			if !ok {
-				return fail("test suite contract", fmt.Sprintf("%s missing intent evidence matching %q", spec.file, pattern))
+				issues = append(issues, fmt.Sprintf("%s missing intent evidence matching %q", spec.file, pattern))
 			}
 		}
 		if assertions := regexp.MustCompile(`expect\s*\(`).FindAllStringIndex(text, -1); len(assertions) < 2 {
-			return fail("test suite contract", fmt.Sprintf("%s has too few assertions to be meaningful", spec.file))
+			issues = append(issues, fmt.Sprintf("%s has too few assertions to be meaningful", spec.file))
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("test suite contract", issues)
 	}
 
 	return pass("test suite contract", "required test files, titles, assertions, and intent markers found")

@@ -50,15 +50,17 @@ func checkUtilityContracts(root string) Result {
 		},
 	}
 
+	var issues []string
 	for _, check := range utilityChecks {
 		content, err := os.ReadFile(filepath.Join(root, check.file))
 		if err != nil {
-			return fail("utility contracts", err.Error())
+			issues = append(issues, check.file+" could not be read: "+err.Error())
+			continue
 		}
 		text := string(content)
 		for _, pattern := range check.patterns {
 			if !strings.Contains(text, pattern) {
-				return fail("utility contracts", fmt.Sprintf("%s missing %q", check.file, pattern))
+				issues = append(issues, fmt.Sprintf("%s missing %q", check.file, pattern))
 			}
 		}
 		for _, pattern := range check.regexes {
@@ -67,9 +69,13 @@ func checkUtilityContracts(root string) Result {
 				return fail("utility contracts", fmt.Sprintf("%s has invalid examiner regex %q: %v", check.file, pattern, err))
 			}
 			if !ok {
-				return fail("utility contracts", fmt.Sprintf("%s missing pattern %q", check.file, pattern))
+				issues = append(issues, fmt.Sprintf("%s missing pattern %q", check.file, pattern))
 			}
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("utility contracts", issues)
 	}
 
 	return pass("utility contracts", "required exported utility signatures and core implementation markers found")

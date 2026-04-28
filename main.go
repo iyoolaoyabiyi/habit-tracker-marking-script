@@ -56,7 +56,7 @@ func main() {
 
 		fmt.Printf("[%s] %s / %s (%.2f/%.2f)\n", status, result.Category, result.Name, result.Earned, result.Score)
 		if result.Details != "" {
-			fmt.Printf("       %s\n", result.Details)
+			printIndented(result.Details)
 		}
 	}
 	earned, possible := checks.TotalScore(results)
@@ -69,6 +69,12 @@ func main() {
 
 	fmt.Printf("\nScore: %.2f/%.2f\n", earned, possible)
 	fmt.Println("All examiner checks passed")
+}
+
+func printIndented(details string) {
+	for _, line := range strings.Split(details, "\n") {
+		fmt.Printf("       %s\n", line)
+	}
 }
 
 func resolveRepo(repoArg string, keepClone bool) (string, func(), error) {

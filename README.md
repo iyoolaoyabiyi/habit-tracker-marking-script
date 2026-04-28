@@ -2,6 +2,8 @@
 
 `habit-examiner` is a Go CLI for reviewing a submitted Habit Tracker PWA against the technical requirements document.
 
+This is a gate check, if any required part of each check is missing, the contract is broken and the submission fails.
+
 It can inspect either:
 
 - a local repository path
@@ -159,7 +161,7 @@ The tool prints one line per check group:
 [FAIL] quality gates / mentor ai check
 ```
 
-Each failure includes the relevant requirements section where one is available and a short reason so an examiner can see what broke without reading the code first.
+Each failure includes the relevant requirements section where one is available and all detected issues for that check group, so an examiner can see what broke without reading the code first and an intern can fix related problems in one pass.
 
 ## Scoring
 
@@ -178,7 +180,17 @@ The examiner groups checks into:
 - `documentation`
 - `meta`
 
-Static checks enforce required paths, package markers, exported contracts, test IDs, README sections, and source behavior evidence. Runtime checks run the submitted build and tests, generate a coverage summary, and execute examiner-owned Vitest tests. Browser checks run examiner-owned Playwright flows for auth, habit CRUD, user isolation, PWA/offline behavior, accessibility, and responsive overflow.
+Static checks enforce required paths, package markers, exported contracts, test IDs, README sections, and source behavior evidence. Static and content checks are strict but do not intentionally fail fast: they collect every missing marker they can find within the group, then return one binary pass/fail result. Runtime checks still fail fast on blocking setup or execution failures such as install, build, or server startup errors. Browser checks run examiner-owned Playwright flows for auth, habit CRUD, user isolation, PWA/offline behavior, accessibility, and responsive overflow.
+
+Failure details use this shape:
+
+```text
+[FAIL] quality gates / accessibility markers (0.00/0.75)
+       section 15: Issues found:
+       - src/components/auth/LoginForm.tsx is missing htmlFor associations
+       - src/components/habits/HabitForm.tsx is missing button elements
+       - src/app/globals.css is missing :focus-visible styling
+```
 
 ## Fixture Coverage
 

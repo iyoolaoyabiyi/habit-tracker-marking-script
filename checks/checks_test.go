@@ -3,6 +3,7 @@ package checks
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -100,6 +101,32 @@ describe('calculateCurrentStreak', () => {});
 	}
 	if result.Score != 0 {
 		t.Fatalf("expected mentor AI check to remain outside possible score, got %v", result.Score)
+	}
+}
+
+func TestAccessibilityMarkersReportsAllDetectedIssues(t *testing.T) {
+	root := t.TempDir()
+	writeFixtureFile(t, root, "src/components/auth/LoginForm.tsx", `<form><button>Submit</button></form>`)
+	writeFixtureFile(t, root, "src/components/auth/SignupForm.tsx", `<form><label>Email</label></form>`)
+	writeFixtureFile(t, root, "src/components/habits/HabitForm.tsx", `<form><label htmlFor="name">Name</label></form>`)
+	writeFixtureFile(t, root, "src/app/globals.css", `body { margin: 0; }`)
+
+	result := checkAccessibilityMarkers(root)
+	if result.Passed {
+		t.Fatalf("expected accessibility markers to fail")
+	}
+
+	for _, expected := range []string{
+		"src/components/auth/LoginForm.tsx is missing label elements",
+		"src/components/auth/LoginForm.tsx is missing htmlFor associations",
+		"src/components/auth/SignupForm.tsx is missing htmlFor associations",
+		"src/components/auth/SignupForm.tsx is missing button elements",
+		"src/components/habits/HabitForm.tsx is missing button elements",
+		"src/app/globals.css is missing :focus-visible styling",
+	} {
+		if !strings.Contains(result.Details, expected) {
+			t.Fatalf("expected details to contain %q, got:\n%s", expected, result.Details)
+		}
 	}
 }
 

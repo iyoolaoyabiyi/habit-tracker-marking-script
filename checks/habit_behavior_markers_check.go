@@ -2,20 +2,13 @@ package checks
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
 func checkHabitBehaviorMarkers(root string) Result {
-	habitsContent, err := os.ReadFile(filepath.Join(root, "src/lib/habits.ts"))
-	if err != nil {
-		return fail("habit behavior markers", err.Error())
-	}
-	cardContent, err := os.ReadFile(filepath.Join(root, "src/components/habits/HabitCard.tsx"))
-	if err != nil {
-		return fail("habit behavior markers", err.Error())
-	}
+	var issues []string
+	habitsContent, _ := readFileIssue(root, "src/lib/habits.ts", &issues)
+	cardContent, _ := readFileIssue(root, "src/components/habits/HabitCard.tsx", &issues)
 
 	required := []struct {
 		text string
@@ -27,13 +20,17 @@ func checkHabitBehaviorMarkers(root string) Result {
 	}
 
 	sources := map[string]string{
-		"src/lib/habits.ts":                   string(habitsContent),
-		"src/components/habits/HabitCard.tsx": string(cardContent),
+		"src/lib/habits.ts":                   habitsContent,
+		"src/components/habits/HabitCard.tsx": cardContent,
 	}
 	for _, item := range required {
 		if !strings.Contains(sources[item.src], item.text) {
-			return fail("habit behavior markers", fmt.Sprintf("%s missing %q", item.src, item.text))
+			issues = append(issues, fmt.Sprintf("%s missing %q", item.src, item.text))
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("habit behavior markers", issues)
 	}
 
 	return pass("habit behavior markers", "habit completion, deletion confirmation, and streak markers are present")

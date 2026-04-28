@@ -1,18 +1,15 @@
 package checks
 
-import (
-	"os"
-	"path/filepath"
-	"strings"
-)
+import "strings"
 
 func checkReadme(root string) Result {
-	content, err := os.ReadFile(filepath.Join(root, "README.md"))
-	if err != nil {
-		return fail("readme requirements", err.Error())
+	var issues []string
+	content, ok := readFileIssue(root, "README.md", &issues)
+	if !ok {
+		return failWithIssues("readme requirements", issues)
 	}
 
-	text := strings.ToLower(string(content))
+	text := strings.ToLower(content)
 	requiredPhrases := []string{
 		"project overview",
 		"setup instructions",
@@ -26,8 +23,12 @@ func checkReadme(root string) Result {
 
 	for _, phrase := range requiredPhrases {
 		if !strings.Contains(text, phrase) {
-			return fail("readme requirements", "README.md missing section containing "+phrase)
+			issues = append(issues, "README.md missing section containing "+phrase)
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("readme requirements", issues)
 	}
 
 	return pass("readme requirements", "required README sections found")

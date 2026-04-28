@@ -11,11 +11,11 @@ import (
 func checkTypeContracts(root string) Result {
 	authContent, err := os.ReadFile(filepath.Join(root, "src/types/auth.ts"))
 	if err != nil {
-		return fail("type contracts", err.Error())
+		return failWithIssues("type contracts", []string{"src/types/auth.ts could not be read: " + err.Error()})
 	}
 	habitContent, err := os.ReadFile(filepath.Join(root, "src/types/habit.ts"))
 	if err != nil {
-		return fail("type contracts", err.Error())
+		return failWithIssues("type contracts", []string{"src/types/habit.ts could not be read: " + err.Error()})
 	}
 
 	authChecks := []struct {
@@ -25,35 +25,42 @@ func checkTypeContracts(root string) Result {
 		{name: "User", fields: []string{"id: string;", "email: string;", "password: string;", "createdAt: string;"}},
 		{name: "Session", fields: []string{"userId: string;", "email: string;"}},
 	}
+	var issues []string
 	for _, check := range authChecks {
 		body, ok := exportedTypeBody(string(authContent), check.name)
 		if !ok {
-			return fail("type contracts", "src/types/auth.ts missing export type "+check.name)
+			issues = append(issues, "src/types/auth.ts missing export type "+check.name)
+			continue
 		}
 		for _, field := range check.fields {
 			if !strings.Contains(body, field) {
-				return fail("type contracts", fmt.Sprintf("src/types/auth.ts %s missing %s", check.name, field))
+				issues = append(issues, fmt.Sprintf("src/types/auth.ts %s missing %s", check.name, field))
 			}
 		}
 	}
 
 	habitBody, ok := exportedTypeBody(string(habitContent), "Habit")
 	if !ok {
-		return fail("type contracts", "src/types/habit.ts missing export type Habit")
-	}
-	habitChecks := []string{
-		"id: string;",
-		"userId: string;",
-		"name: string;",
-		"description: string;",
-		"frequency: 'daily';",
-		"createdAt: string;",
-		"completions: string[];",
-	}
-	for _, needle := range habitChecks {
-		if !strings.Contains(habitBody, needle) {
-			return fail("type contracts", "src/types/habit.ts Habit missing "+needle)
+		issues = append(issues, "src/types/habit.ts missing export type Habit")
+	} else {
+		habitChecks := []string{
+			"id: string;",
+			"userId: string;",
+			"name: string;",
+			"description: string;",
+			"frequency: 'daily';",
+			"createdAt: string;",
+			"completions: string[];",
 		}
+		for _, needle := range habitChecks {
+			if !strings.Contains(habitBody, needle) {
+				issues = append(issues, "src/types/habit.ts Habit missing "+needle)
+			}
+		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("type contracts", issues)
 	}
 
 	return pass("type contracts", "required exported types found")

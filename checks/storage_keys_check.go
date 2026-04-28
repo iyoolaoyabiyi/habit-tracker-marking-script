@@ -1,15 +1,12 @@
 package checks
 
-import (
-	"os"
-	"path/filepath"
-	"strings"
-)
+import "strings"
 
 func checkStorageKeys(root string) Result {
-	content, err := os.ReadFile(filepath.Join(root, "src/lib/constants.ts"))
-	if err != nil {
-		return fail("storage keys", err.Error())
+	var issues []string
+	content, ok := readFileIssue(root, "src/lib/constants.ts", &issues)
+	if !ok {
+		return failWithIssues("storage keys", issues)
 	}
 
 	required := []string{
@@ -18,9 +15,13 @@ func checkStorageKeys(root string) Result {
 		"habit-tracker-habits",
 	}
 	for _, key := range required {
-		if !strings.Contains(string(content), key) {
-			return fail("storage keys", "missing key "+key+" in src/lib/constants.ts")
+		if !strings.Contains(content, key) {
+			issues = append(issues, "src/lib/constants.ts missing key "+key)
 		}
+	}
+
+	if len(issues) > 0 {
+		return failWithIssues("storage keys", issues)
 	}
 
 	return pass("storage keys", "required localStorage keys found")
