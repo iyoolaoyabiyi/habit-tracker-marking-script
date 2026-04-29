@@ -6,8 +6,8 @@ This is a gate check, if any required part of each check is missing, the contrac
 
 It can inspect either:
 
-- a local repository path
-- a GitHub repository URL
+- one or more local repository paths
+- one or more GitHub repository URLs
 
 ## Setup And Use
 
@@ -35,6 +35,18 @@ To examine a GitHub repository directly:
 
 ```bash
 GOCACHE=/tmp/go-build-cache go run . -repo https://github.com/owner/repo
+```
+
+To examine multiple local directories or repositories and save the report:
+
+```bash
+GOCACHE=/tmp/go-build-cache go run . -repo /path/to/submission-a -dir /path/to/submission-b -log logs/examiner.log
+```
+
+For larger batches, use newline-delimited list files:
+
+```bash
+GOCACHE=/tmp/go-build-cache go run . -repo-list repos.txt -dir-list dirs.txt -log logs/examiner.log
 ```
 
 ## Generate A Binary
@@ -95,6 +107,20 @@ make build
 ./bin/habit-examiner -repo https://github.com/owner/repo
 ```
 
+### Check multiple targets and write a log
+
+```bash
+./bin/habit-examiner -repo /path/to/submission-a -repo https://github.com/owner/repo -dir /path/to/submission-b -log logs/examiner.log
+```
+
+For large batches:
+
+```bash
+./bin/habit-examiner -repo-list repos.txt -dir-list dirs.txt -log logs/examiner.log
+```
+
+List files are newline-delimited. Blank lines and lines starting with `#` are ignored.
+
 ### Keep the temporary clone
 
 ```bash
@@ -104,7 +130,15 @@ make build
 ## Flags
 
 - `-repo`
-  Local repository path or GitHub repository URL.
+  Local repository path or GitHub repository URL. May be repeated.
+- `-dir`
+  Local repository directory path. May be repeated.
+- `-repo-list`
+  Newline-delimited file of local repository paths or GitHub repository URLs.
+- `-dir-list`
+  Newline-delimited file of local repository directory paths.
+- `-log`
+  Write the examiner output to a log file while still printing it to the terminal.
 - `-keep-clone`
   Keep the temporary cloned repository when `-repo` is a URL.
 - `-install-deps`
