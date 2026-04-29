@@ -25,6 +25,7 @@ type RuntimeOptions struct {
 	RunOffline       bool
 	RunAccessibility bool
 	RunResponsive    bool
+	NPMCache         string
 }
 
 type manifest struct {
@@ -215,13 +216,32 @@ func TotalScore(results []Result) (earned, possible float64) {
 }
 
 func runCommand(dir, name string, args ...string) (string, error) {
+	return runCommandWithEnv(dir, nil, name, args...)
+}
+
+func runCommandWithEnv(dir string, extraEnv []string, name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
+	if len(extraEnv) > 0 {
+		cmd.Env = append(os.Environ(), extraEnv...)
+	}
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 	err := cmd.Run()
 	return out.String(), err
+}
+
+func npmEnv(options RuntimeOptions) []string {
+	env := []string{
+		"npm_config_audit=false",
+		"npm_config_fund=false",
+		"npm_config_prefer_offline=true",
+	}
+	if options.NPMCache != "" {
+		env = append(env, "npm_config_cache="+options.NPMCache)
+	}
+	return env
 }
 
 func readExistingFiles(root string, files []string) (string, error) {

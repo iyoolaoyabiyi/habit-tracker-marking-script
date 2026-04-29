@@ -22,49 +22,49 @@ func checkExecutableVerification(root string, options RuntimeOptions) Result {
 		if _, err := os.Stat(filepath.Join(root, "package-lock.json")); err != nil {
 			installCmd = []string{"npm", "install"}
 		}
-		output, err := runCommand(root, installCmd[0], installCmd[1:]...)
+		output, err := runCommandWithEnv(root, npmEnv(options), installCmd[0], installCmd[1:]...)
 		if err != nil {
 			return fail("executable verification", fmt.Sprintf("%s failed:\n%s", strings.Join(installCmd, " "), tail(output, 40)))
 		}
 	}
 
-	buildOutput, err := runCommand(root, "npm", "run", "build")
+	buildOutput, err := runCommandWithEnv(root, npmEnv(options), "npm", "run", "build")
 	if err != nil {
 		return fail("executable verification", "npm run build failed:\n"+tail(buildOutput, 40))
 	}
 
-	unitOutput, err := runCommand(root, "npm", "run", "test:unit")
+	unitOutput, err := runCommandWithEnv(root, npmEnv(options), "npm", "run", "test:unit")
 	if err != nil {
 		return fail("executable verification", "npm run test:unit failed:\n"+tail(unitOutput, 60))
 	}
 	if !strings.Contains(unitOutput, "Coverage") && !strings.Contains(unitOutput, "coverage") {
 		return fail("executable verification", "unit test output is missing coverage output")
 	}
-	coverageOutput, err := verifyCoverageSummary(root)
+	coverageOutput, err := verifyCoverageSummary(root, options)
 	if err != nil {
 		return fail("executable verification", "coverage threshold verification failed:\n"+tail(coverageOutput, 60))
 	}
 
-	integrationOutput, err := runCommand(root, "npm", "run", "test:integration")
+	integrationOutput, err := runCommandWithEnv(root, npmEnv(options), "npm", "run", "test:integration")
 	if err != nil {
 		return fail("executable verification", "npm run test:integration failed:\n"+tail(integrationOutput, 60))
 	}
 
 	if options.RunE2E {
-		e2eOutput, err := runCommand(root, "npm", "run", "test:e2e")
+		e2eOutput, err := runCommandWithEnv(root, npmEnv(options), "npm", "run", "test:e2e")
 		if err != nil {
 			return fail("executable verification", "npm run test:e2e failed:\n"+tail(e2eOutput, 80))
 		}
 	}
 
-	runtimeOutput, err := runExaminerRuntimeTests(root)
+	runtimeOutput, err := runExaminerRuntimeTests(root, options)
 	if err != nil {
 		return fail("executable verification", "examiner-owned runtime tests failed:\n"+tail(runtimeOutput, 80))
 	}
 
 	var browserOutput string
 	if options.RunE2E && (options.RunOffline || options.RunAccessibility || options.RunResponsive) {
-		buildOutput, err := runCommand(root, "npm", "run", "build")
+		buildOutput, err := runCommandWithEnv(root, npmEnv(options), "npm", "run", "build")
 		if err != nil {
 			return fail("executable verification", "npm run build before examiner browser tests failed:\n"+tail(buildOutput, 40))
 		}

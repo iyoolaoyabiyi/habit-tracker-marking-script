@@ -34,6 +34,7 @@ func main() {
 	repoListPath := flag.String("repo-list", "", "newline-delimited file of local repository paths or GitHub repository URLs")
 	dirListPath := flag.String("dir-list", "", "newline-delimited file of local repository directories")
 	logPath := flag.String("log", "", "write examiner output to this log file")
+	npmCachePath := flag.String("npm-cache", filepath.Join(os.TempDir(), "habit-examiner-npm-cache"), "shared npm cache directory for executable checks")
 	keepClone := flag.Bool("keep-clone", false, "keep the temporary cloned repository when -repo is a URL")
 	installDeps := flag.Bool("install-deps", true, "install JavaScript dependencies before running executable checks")
 	runCommands := flag.Bool("run-commands", true, "run build and test scripts")
@@ -89,6 +90,7 @@ func main() {
 		RunOffline:       *runOffline,
 		RunAccessibility: *runAccessibility,
 		RunResponsive:    *runResponsive,
+		NPMCache:         *npmCachePath,
 	}
 
 	var checkFailures int

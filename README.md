@@ -49,6 +49,8 @@ For larger batches, use newline-delimited list files:
 GOCACHE=/tmp/go-build-cache go run . -repo-list repos.txt -dir-list dirs.txt -log logs/examiner.log
 ```
 
+Executable checks use a shared npm cache by default at `/tmp/habit-examiner-npm-cache` on Unix-like systems. This lets later repositories reuse package downloads while still installing a correct per-repository `node_modules` tree from each repository's lockfile.
+
 ## Generate A Binary
 
 Build a reusable local binary:
@@ -139,6 +141,8 @@ List files are newline-delimited. Blank lines and lines starting with `#` are ig
   Newline-delimited file of local repository directory paths.
 - `-log`
   Write the examiner output to a log file while still printing it to the terminal.
+- `-npm-cache`
+  Shared npm cache directory used by executable checks. Default: OS temp directory plus `habit-examiner-npm-cache`.
 - `-keep-clone`
   Keep the temporary cloned repository when `-repo` is a URL.
 - `-install-deps`
@@ -179,6 +183,16 @@ Useful when the submission already has `node_modules` installed:
 ```bash
 ./bin/habit-examiner -repo /path/to/submission -install-deps=false
 ```
+
+### Reuse package downloads across a batch
+
+Useful when checking many submissions that share similar dependencies:
+
+```bash
+./bin/habit-examiner -repo-list repos.txt -npm-cache /tmp/habit-examiner-npm-cache
+```
+
+The examiner intentionally does not share one `node_modules` directory across repositories. That can produce incorrect results when lockfiles, native packages, or postinstall scripts differ. The shared npm cache keeps downloads efficient while each target remains isolated.
 
 ## Exit Codes
 

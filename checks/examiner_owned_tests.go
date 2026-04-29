@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func runExaminerRuntimeTests(root string) (string, error) {
+func runExaminerRuntimeTests(root string, options RuntimeOptions) (string, error) {
 	testPath := filepath.Join(root, "tests", "unit", "examiner-runtime.test.ts")
 	cleanup, err := writeTemporaryFile(testPath, examinerRuntimeTestSource)
 	if err != nil {
@@ -15,7 +15,7 @@ func runExaminerRuntimeTests(root string) (string, error) {
 	}
 	defer cleanup()
 
-	return runCommand(root, "npm", "exec", "--", "vitest", "run", "tests/unit/examiner-runtime.test.ts", "--environment", "jsdom")
+	return runCommandWithEnv(root, npmEnv(options), "npm", "exec", "--", "vitest", "run", "tests/unit/examiner-runtime.test.ts", "--environment", "jsdom")
 }
 
 func runExaminerBrowserTests(root string, options RuntimeOptions) (string, error) {
@@ -31,7 +31,7 @@ func runExaminerBrowserTests(root string, options RuntimeOptions) (string, error
 	}
 	defer cleanup()
 
-	return runCommand(root, "npm", "exec", "--", "playwright", "test", "tests/e2e/examiner-browser.spec.ts")
+	return runCommandWithEnv(root, npmEnv(options), "npm", "exec", "--", "playwright", "test", "tests/e2e/examiner-browser.spec.ts")
 }
 
 func writeTemporaryFile(path, content string) (func(), error) {

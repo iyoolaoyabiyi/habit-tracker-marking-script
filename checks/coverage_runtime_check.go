@@ -15,8 +15,8 @@ type coverageSummary struct {
 	} `json:"total"`
 }
 
-func verifyCoverageSummary(root string) (string, error) {
-	output, err := runCommand(root, "npm", "exec", "--", "vitest", "run", "--coverage", "--coverage.reporter=json-summary")
+func verifyCoverageSummary(root string, options RuntimeOptions) (string, error) {
+	output, err := runCommandWithEnv(root, npmEnv(options), "npm", "exec", "--", "vitest", "run", "--coverage", "--coverage.reporter=json-summary")
 	if err != nil {
 		return output, err
 	}
