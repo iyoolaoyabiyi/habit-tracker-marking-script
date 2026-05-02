@@ -1,11 +1,25 @@
 package checks
 
-import "strings"
+import (
+	"os"
+	"path/filepath"
+	"strings"
+)
 
 func checkStorageKeys(root string) Result {
 	var issues []string
-	content, ok := readFileIssue(root, "src/lib/constants.ts", &issues)
-	if !ok {
+	var content strings.Builder
+	readAny := false
+	for _, rel := range []string{"src/lib/constants.ts", "src/lib/storage.ts"} {
+		fileContent, err := os.ReadFile(filepath.Join(root, rel))
+		if err == nil {
+			content.Write(fileContent)
+			content.WriteByte('\n')
+			readAny = true
+		}
+	}
+	if !readAny {
+		issues = append(issues, "src/lib/constants.ts and src/lib/storage.ts could not be read")
 		return failWithIssues("storage keys", issues)
 	}
 
@@ -15,8 +29,8 @@ func checkStorageKeys(root string) Result {
 		"habit-tracker-habits",
 	}
 	for _, key := range required {
-		if !strings.Contains(content, key) {
-			issues = append(issues, "src/lib/constants.ts missing key "+key)
+		if !strings.Contains(content.String(), key) {
+			issues = append(issues, "src/lib/constants.ts or src/lib/storage.ts missing key "+key)
 		}
 	}
 

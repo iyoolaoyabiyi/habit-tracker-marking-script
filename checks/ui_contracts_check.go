@@ -14,7 +14,7 @@ func checkUIContracts(root string) Result {
 	}{
 		{
 			file:     "src/components/shared/SplashScreen.tsx",
-			patterns: []string{`data-testid="splash-screen"`, "Habit Tracker"},
+			patterns: []string{`data-testid="splash-screen"`},
 		},
 		{
 			file:     "src/components/auth/LoginForm.tsx",
@@ -47,6 +47,12 @@ func checkUIContracts(root string) Result {
 				issues = append(issues, fmt.Sprintf("%s missing %q", check.file, pattern))
 			}
 		}
+	}
+
+	splashBytes, splashErr := os.ReadFile(filepath.Join(root, "src/components/shared/SplashScreen.tsx"))
+	constantsContent, _ := os.ReadFile(filepath.Join(root, "src/lib/constants.ts"))
+	if splashErr == nil && !strings.Contains(string(splashBytes)+"\n"+string(constantsContent), "Habit Tracker") {
+		issues = append(issues, `src/components/shared/SplashScreen.tsx or src/lib/constants.ts missing "Habit Tracker"`)
 	}
 
 	dashboardText, err := readExistingFiles(root, []string{

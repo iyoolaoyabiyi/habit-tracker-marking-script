@@ -1,11 +1,16 @@
 package checks
 
-import "regexp"
+import (
+	"os"
+	"path/filepath"
+	"regexp"
+)
 
 func checkLocalPersistenceUsage(root string) Result {
 	var issues []string
 	storageText, storageOK := readFileIssue(root, "src/lib/storage.ts", &issues)
-	constantsText, constantsOK := readFileIssue(root, "src/lib/constants.ts", &issues)
+	constantsContent, _ := os.ReadFile(filepath.Join(root, "src/lib/constants.ts"))
+	keyText := storageText + "\n" + string(constantsContent)
 
 	storageRequired := []struct {
 		label   string
@@ -27,11 +32,9 @@ func checkLocalPersistenceUsage(root string) Result {
 		"habit-tracker-session",
 		"habit-tracker-habits",
 	}
-	if constantsOK {
-		for _, marker := range keyRequired {
-			if !containsAny(constantsText, marker) {
-				issues = append(issues, "src/lib/constants.ts missing "+marker)
-			}
+	for _, marker := range keyRequired {
+		if !containsAny(keyText, marker) {
+			issues = append(issues, "src/lib/storage.ts or src/lib/constants.ts missing "+marker)
 		}
 	}
 

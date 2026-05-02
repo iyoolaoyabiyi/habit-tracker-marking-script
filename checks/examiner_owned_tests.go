@@ -54,11 +54,11 @@ func writeTemporaryFile(path, content string) (func(), error) {
 }
 
 const examinerRuntimeTestSource = `import { describe, expect, it } from 'vitest';
-import { getHabitSlug } from '@/src/lib/slug';
-import { validateHabitName } from '@/src/lib/validators';
-import { calculateCurrentStreak } from '@/src/lib/streaks';
-import { toggleHabitCompletion } from '@/src/lib/habits';
-import type { Habit } from '@/src/types/habit';
+import { getHabitSlug } from '../../src/lib/slug';
+import { validateHabitName } from '../../src/lib/validators';
+import { calculateCurrentStreak } from '../../src/lib/streaks';
+import { toggleHabitCompletion } from '../../src/lib/habits';
+import type { Habit } from '../../src/types/habit';
 
 describe('examiner-owned utility contracts', () => {
   const baseHabit: Habit = {

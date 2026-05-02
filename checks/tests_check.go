@@ -68,7 +68,7 @@ func checkTests(root string) Result {
 				`submits the login form and stores the active session`,
 				`shows an error for invalid login credentials`,
 			},
-			intents: []string{`@testing-library/react`, `userEvent`, `localStorage`, `auth-login-email`, `auth-signup-email`, `expect\s*\(`},
+			intents: []string{`@testing-library/react`, `(?:userEvent|fireEvent)`, `localStorage`, `auth-login-email`, `auth-signup-email`, `expect\s*\(`},
 		},
 		{
 			file: "tests/integration/habit-form.test.tsx",
@@ -80,7 +80,7 @@ func checkTests(root string) Result {
 				`deletes a habit only after explicit confirmation`,
 				`toggles completion and updates the streak display`,
 			},
-			intents: []string{`@testing-library/react`, `userEvent`, `habit-name-input`, `confirm-delete-button`, `habit-complete`, `expect\s*\(`},
+			intents: []string{`@testing-library/react`, `(?:userEvent|fireEvent)`, `habit-name-input`, `confirm-delete-button`, `habit-complete`, `expect\s*\(`},
 		},
 		{
 			file: "tests/e2e/app.spec.ts",

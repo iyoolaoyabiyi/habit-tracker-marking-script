@@ -148,6 +148,25 @@ export const HABITS_KEY = 'habit-tracker-habits';
 	}
 }
 
+func TestStorageKeysMayLiveInStorageModule(t *testing.T) {
+	root := t.TempDir()
+	writeFixtureFile(t, root, "src/lib/constants.ts", `export const APP_NAME = 'Habit Tracker';`)
+	writeFixtureFile(t, root, "src/lib/storage.ts", `
+const USERS_KEY = 'habit-tracker-users';
+const SESSION_KEY = 'habit-tracker-session';
+const HABITS_KEY = 'habit-tracker-habits';
+export const readValue = (key: string) => localStorage.getItem(key);
+export const writeValue = (key: string, value: string) => localStorage.setItem(key, value);
+`)
+
+	if result := checkStorageKeys(root); !result.Passed {
+		t.Fatalf("expected storage keys in storage.ts to pass storage key check, got:\n%s", result.Details)
+	}
+	if result := checkLocalPersistenceUsage(root); !result.Passed {
+		t.Fatalf("expected storage keys in storage.ts to pass local persistence check, got:\n%s", result.Details)
+	}
+}
+
 func TestRequiredStackAcceptsTailwindV3Directives(t *testing.T) {
 	root := t.TempDir()
 	writeFixtureFile(t, root, "package.json", `{
@@ -233,6 +252,26 @@ func TestTestsCheckAcceptsEscapedTitleAndToHaveURL(t *testing.T) {
 	}
 }
 
+func TestTestsCheckAcceptsFireEventForRTLInteractions(t *testing.T) {
+	root := t.TempDir()
+	for _, rel := range []string{
+		"tests/unit/slug.test.ts",
+		"tests/unit/validators.test.ts",
+		"tests/unit/streaks.test.ts",
+		"tests/unit/habits.test.ts",
+		"tests/integration/auth-flow.test.tsx",
+		"tests/integration/habit-form.test.tsx",
+		"tests/e2e/app.spec.ts",
+	} {
+		writeFixtureFile(t, root, rel, strings.ReplaceAll(validFixtureTest, "userEvent", "fireEvent"))
+	}
+
+	result := checkTests(root)
+	if !result.Passed {
+		t.Fatalf("expected fireEvent to pass RTL interaction intent check, got:\n%s", result.Details)
+	}
+}
+
 func TestRouteAndAuthChecksAcceptRouteConstants(t *testing.T) {
 	root := t.TempDir()
 	writeFixtureFile(t, root, "src/app/page.tsx", `import { ROUTES } from '@/src/lib/constants'; export default function Page() { return <SplashScreen next={ROUTES.DASHBOARD} fallback={ROUTES.LOGIN} />; }`)
@@ -248,6 +287,40 @@ func TestRouteAndAuthChecksAcceptRouteConstants(t *testing.T) {
 	}
 	if result := checkAuthBehaviorMarkers(root); !result.Passed {
 		t.Fatalf("expected route constants to pass auth marker check, got:\n%s", result.Details)
+	}
+}
+
+func TestUIContractsAcceptAppNameConstant(t *testing.T) {
+	root := t.TempDir()
+	writeFixtureFile(t, root, "src/lib/constants.ts", `export const APP_NAME = 'Habit Tracker';`)
+	writeFixtureFile(t, root, "src/components/shared/SplashScreen.tsx", `import { APP_NAME } from '@/lib/constants'; export function SplashScreen() { return <div data-testid="splash-screen">{APP_NAME}</div>; }`)
+	writeFixtureFile(t, root, "src/components/auth/LoginForm.tsx", `<input data-testid="auth-login-email" /><input data-testid="auth-login-password" /><button data-testid="auth-login-submit" />`)
+	writeFixtureFile(t, root, "src/components/auth/SignupForm.tsx", `<input data-testid="auth-signup-email" /><input data-testid="auth-signup-password" /><button data-testid="auth-signup-submit" />`)
+	writeFixtureFile(t, root, "src/components/habits/HabitForm.tsx", `<form data-testid="habit-form"><input data-testid="habit-name-input" /><textarea data-testid="habit-description-input" /><select data-testid="habit-frequency-select" /><button data-testid="habit-save-button" /><button data-testid="create-habit-button" /></form>`)
+	writeFixtureFile(t, root, "src/components/habits/HabitCard.tsx", `<div data-testid="habit-card-x"><span data-testid="habit-streak-x" /><button data-testid="habit-complete-x" /><button data-testid="habit-edit-x" /><button data-testid="habit-delete-x" /><button data-testid="confirm-delete-button" /></div>`)
+	writeFixtureFile(t, root, "src/components/habits/HabitList.tsx", `<div data-testid="empty-state" />`)
+	writeFixtureFile(t, root, "src/app/dashboard/page.tsx", `<main data-testid="dashboard-page"><button data-testid="auth-logout-button" /></main>`)
+
+	result := checkUIContracts(root)
+	if !result.Passed {
+		t.Fatalf("expected app name constant to pass UI marker check, got:\n%s", result.Details)
+	}
+}
+
+func TestExaminerRuntimeImportsUseRequiredRelativePaths(t *testing.T) {
+	if strings.Contains(examinerRuntimeTestSource, "@/src/") {
+		t.Fatalf("examiner runtime test should not assume @/src alias imports")
+	}
+	for _, expected := range []string{
+		"../../src/lib/slug",
+		"../../src/lib/validators",
+		"../../src/lib/streaks",
+		"../../src/lib/habits",
+		"../../src/types/habit",
+	} {
+		if !strings.Contains(examinerRuntimeTestSource, expected) {
+			t.Fatalf("examiner runtime test missing relative import %q", expected)
+		}
 	}
 }
 
