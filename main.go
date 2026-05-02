@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -201,8 +202,15 @@ func printIndented(writer io.Writer, details string) {
 }
 
 func resolveRepo(writer io.Writer, repoArg string, keepClone bool) (string, func(), error) {
+	if target, ok, err := parseGitHubTreeURL(repoArg); ok || err != nil {
+		if err != nil {
+			return "", nil, err
+		}
+		return cloneRepoTarget(writer, target, keepClone)
+	}
+
 	if looksLikeGitHubRepo(repoArg) {
-		return cloneRepo(writer, repoArg, keepClone)
+		return cloneRepoTarget(writer, githubTarget{CloneURL: repoArg}, keepClone)
 	}
 
 	root, err := filepath.Abs(repoArg)
@@ -227,16 +235,107 @@ func looksLikeGitHubRepo(value string) bool {
 		strings.HasPrefix(value, "git@github.com:")
 }
 
-func cloneRepo(writer io.Writer, repoURL string, keepClone bool) (string, func(), error) {
+type githubTarget struct {
+	CloneURL string
+	Branch   string
+	Subdir   string
+}
+
+func parseGitHubTreeURL(value string) (githubTarget, bool, error) {
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return githubTarget{}, false, nil
+	}
+	if parsed.Host != "github.com" && parsed.Host != "www.github.com" {
+		return githubTarget{}, false, nil
+	}
+
+	parts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+	if len(parts) < 4 || parts[2] != "tree" {
+		return githubTarget{}, false, nil
+	}
+
+	owner := parts[0]
+	repo := strings.TrimSuffix(parts[1], ".git")
+	if owner == "" || repo == "" {
+		return githubTarget{}, true, fmt.Errorf("invalid GitHub tree URL: %s", value)
+	}
+
+	cloneURL := fmt.Sprintf("%s://github.com/%s/%s.git", parsed.Scheme, owner, repo)
+	remainder := strings.Join(parts[3:], "/")
+	branch, subdir, err := resolveGitHubTreeBranch(cloneURL, remainder)
+	if err != nil {
+		return githubTarget{}, true, err
+	}
+
+	return githubTarget{CloneURL: cloneURL, Branch: branch, Subdir: subdir}, true, nil
+}
+
+func resolveGitHubTreeBranch(cloneURL, remainder string) (string, string, error) {
+	output, err := runLocalCommand("git", "ls-remote", "--heads", cloneURL)
+	if err != nil {
+		return "", "", fmt.Errorf("could not inspect remote branches for %s: %w", cloneURL, err)
+	}
+
+	branch, subdir := matchGitHubTreeBranch(output, remainder)
+	if branch == "" {
+		return "", "", fmt.Errorf("could not match GitHub tree branch %q in %s", remainder, cloneURL)
+	}
+
+	return branch, subdir, nil
+}
+
+func matchGitHubTreeBranch(remoteRefs, remainder string) (string, string) {
+	var branch string
+	for _, line := range strings.Split(remoteRefs, "\n") {
+		_, ref, ok := strings.Cut(line, "\t")
+		if !ok {
+			continue
+		}
+		name := strings.TrimPrefix(ref, "refs/heads/")
+		if remainder == name || strings.HasPrefix(remainder, name+"/") {
+			if len(name) > len(branch) {
+				branch = name
+			}
+		}
+	}
+
+	if branch == "" {
+		return "", ""
+	}
+
+	if remainder == branch {
+		return branch, ""
+	}
+
+	return branch, strings.TrimPrefix(remainder, branch+"/")
+}
+
+func runLocalCommand(name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
+	var out strings.Builder
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	err := cmd.Run()
+	return out.String(), err
+}
+
+func cloneRepoTarget(writer io.Writer, target githubTarget, keepClone bool) (string, func(), error) {
 	tempDir, err := os.MkdirTemp("", "habit-tracker-examiner-*")
 	if err != nil {
 		return "", nil, err
 	}
 
 	cloneDir := filepath.Join(tempDir, "repo")
-	fmt.Fprintf(writer, "Cloning repository %s into %s\n", repoURL, cloneDir)
+	fmt.Fprintf(writer, "Cloning repository %s into %s\n", target.CloneURL, cloneDir)
 
-	cmd := exec.Command("git", "clone", "--depth", "1", repoURL, cloneDir)
+	args := []string{"clone", "--depth", "1"}
+	if target.Branch != "" {
+		args = append(args, "--branch", target.Branch)
+	}
+	args = append(args, target.CloneURL, cloneDir)
+
+	cmd := exec.Command("git", args...)
 	cmd.Stdout = writer
 	cmd.Stderr = writer
 
@@ -245,13 +344,27 @@ func cloneRepo(writer io.Writer, repoURL string, keepClone bool) (string, func()
 		return "", nil, fmt.Errorf("git clone failed: %w", err)
 	}
 
+	root := cloneDir
+	if target.Subdir != "" {
+		root = filepath.Join(cloneDir, filepath.FromSlash(target.Subdir))
+		info, err := os.Stat(root)
+		if err != nil {
+			_ = os.RemoveAll(tempDir)
+			return "", nil, fmt.Errorf("GitHub tree subdirectory %s was not found after clone: %w", target.Subdir, err)
+		}
+		if !info.IsDir() {
+			_ = os.RemoveAll(tempDir)
+			return "", nil, fmt.Errorf("GitHub tree path %s is not a directory", target.Subdir)
+		}
+	}
+
 	if keepClone {
-		return cloneDir, func() {
+		return root, func() {
 			fmt.Fprintf(writer, "\nKept cloned repository at %s\n", cloneDir)
 		}, nil
 	}
 
-	return cloneDir, func() {
+	return root, func() {
 		_ = os.RemoveAll(tempDir)
 	}, nil
 }

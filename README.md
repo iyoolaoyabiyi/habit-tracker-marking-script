@@ -37,6 +37,12 @@ To examine a GitHub repository directly:
 GOCACHE=/tmp/go-build-cache go run . -repo https://github.com/owner/repo
 ```
 
+To examine a subdirectory from a GitHub branch:
+
+```bash
+GOCACHE=/tmp/go-build-cache go run . -repo https://github.com/owner/repo/tree/main/frontend/stage-3
+```
+
 To examine multiple local directories or repositories and save the report:
 
 ```bash
@@ -109,6 +115,12 @@ make build
 ./bin/habit-examiner -repo https://github.com/owner/repo
 ```
 
+GitHub `tree` URLs are supported when the submission lives in a repository subdirectory:
+
+```bash
+./bin/habit-examiner -repo https://github.com/owner/repo/tree/main/frontend/stage-3
+```
+
 ### Check multiple targets and write a log
 
 ```bash
@@ -132,7 +144,7 @@ List files are newline-delimited. Blank lines and lines starting with `#` are ig
 ## Flags
 
 - `-repo`
-  Local repository path or GitHub repository URL. May be repeated.
+  Local repository path, GitHub repository URL, or GitHub `tree` URL. May be repeated.
 - `-dir`
   Local repository directory path. May be repeated.
 - `-repo-list`

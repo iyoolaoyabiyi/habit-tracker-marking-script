@@ -117,6 +117,12 @@ Check one GitHub repository:
 ./habit-examiner -repo https://github.com/owner/repo
 ```
 
+Check a GitHub repository subdirectory:
+
+```bash
+./habit-examiner -repo https://github.com/owner/repo/tree/main/frontend/stage-3
+```
+
 Check many repositories from a file and write a log:
 
 ```bash
@@ -150,6 +156,7 @@ List files are newline-delimited:
 /path/to/submission-a
 /path/to/submission-b
 https://github.com/owner/repo
+https://github.com/owner/repo/tree/main/frontend/stage-3
 ```
 
 Use `-repo-list` for local repository paths and GitHub URLs. Use `-dir-list` for local repository directories only.
@@ -185,11 +192,11 @@ The cache reuses downloaded package tarballs. It does not share one `node_module
 ## Flags
 
 - `-repo`
-  Local repository path or GitHub repository URL. May be repeated.
+  Local repository path, GitHub repository URL, or GitHub `tree` URL. May be repeated.
 - `-dir`
   Local repository directory path. May be repeated.
 - `-repo-list`
-  Newline-delimited file containing local repository paths or GitHub repository URLs.
+  Newline-delimited file containing local repository paths, GitHub repository URLs, or GitHub `tree` URLs.
 - `-dir-list`
   Newline-delimited file containing local repository directory paths.
 - `-log`
@@ -285,6 +292,7 @@ When multiple targets are provided, the binary continues through all targets eve
 ## Notes
 
 - GitHub URL targets are cloned into a temporary directory and removed after the run unless `-keep-clone` is set.
+- GitHub `tree` URL targets clone the base repository, check out the referenced branch, and run checks against the referenced subdirectory.
 - `npm ci` is used when `package-lock.json` exists. Otherwise the binary falls back to `npm install`.
 - Static checks are fast and do not execute submitted app commands.
 - Runtime and browser checks can take significantly longer because they install dependencies, build the app, run submitted tests, and run examiner-owned tests.
