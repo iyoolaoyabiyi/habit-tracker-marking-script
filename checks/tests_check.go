@@ -97,7 +97,7 @@ func checkTests(root string) Result {
 				`logs out and redirects to /login`,
 				`loads the cached app shell when offline after the app has been loaded once`,
 			},
-			intents: []string{`@playwright/test`, `page\.goto`, `waitForURL`, `getByTestId`, `localStorage`, `setOffline`, `expect\s*\(`},
+			intents: []string{`@playwright/test`, `page\.goto`, `(?:waitForURL|toHaveURL)`, `getByTestId`, `localStorage`, `setOffline`, `expect\s*\(`},
 		},
 	}
 
@@ -109,8 +109,9 @@ func checkTests(root string) Result {
 			continue
 		}
 		text := string(content)
+		sourceText := normalizeJSEscapedText(text)
 		for _, pattern := range spec.patterns {
-			if !strings.Contains(text, pattern) {
+			if !strings.Contains(sourceText, pattern) {
 				issues = append(issues, fmt.Sprintf("%s missing %q", spec.file, pattern))
 			}
 		}

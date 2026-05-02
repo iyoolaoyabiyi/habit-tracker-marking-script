@@ -130,6 +130,127 @@ func TestAccessibilityMarkersReportsAllDetectedIssues(t *testing.T) {
 	}
 }
 
+func TestLocalPersistenceAcceptsUnqualifiedLocalStorage(t *testing.T) {
+	root := t.TempDir()
+	writeFixtureFile(t, root, "src/lib/storage.ts", `
+export const readValue = (key: string) => localStorage.getItem(key);
+export const writeValue = (key: string, value: string) => localStorage.setItem(key, value);
+`)
+	writeFixtureFile(t, root, "src/lib/constants.ts", `
+export const USERS_KEY = 'habit-tracker-users';
+export const SESSION_KEY = 'habit-tracker-session';
+export const HABITS_KEY = 'habit-tracker-habits';
+`)
+
+	result := checkLocalPersistenceUsage(root)
+	if !result.Passed {
+		t.Fatalf("expected unqualified localStorage usage to pass, got:\n%s", result.Details)
+	}
+}
+
+func TestRequiredStackAcceptsTailwindV3Directives(t *testing.T) {
+	root := t.TempDir()
+	writeFixtureFile(t, root, "package.json", `{
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest",
+    "tailwindcss": "3.4.0",
+    "@playwright/test": "latest",
+    "vitest": "latest",
+    "@testing-library/react": "latest"
+  }
+}`)
+	writeFixtureFile(t, root, "src/app/layout.tsx", `export default function RootLayout() { return null; }`)
+	writeFixtureFile(t, root, "src/components/auth/LoginForm.tsx", `import { useState } from 'react'; export function LoginForm() { useState(false); return null; }`)
+	writeFixtureFile(t, root, "tsconfig.json", `{"compilerOptions": {}}`)
+	writeFixtureFile(t, root, "src/app/globals.css", "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n")
+	writeFixtureFile(t, root, "playwright.config.ts", `import { defineConfig } from '@playwright/test'; export default defineConfig({});`)
+	writeFixtureFile(t, root, "vitest.config.ts", `import { defineConfig } from 'vitest/config'; export default defineConfig({});`)
+	writeFixtureFile(t, root, "tests/integration/auth-flow.test.tsx", `import { render } from '@testing-library/react';`)
+
+	result := checkRequiredStack(root)
+	if !result.Passed {
+		t.Fatalf("expected Tailwind v3 directives to pass, got:\n%s", result.Details)
+	}
+}
+
+func TestTypeContractsAcceptInterfacesAndFlexibleFormatting(t *testing.T) {
+	root := t.TempDir()
+	writeFixtureFile(t, root, "src/types/auth.ts", `
+export interface User {
+  id: string
+  email: string,
+  password: string;
+  createdAt: string
+}
+
+export interface Session {
+  userId: string
+  email: string
+}
+`)
+	writeFixtureFile(t, root, "src/types/habit.ts", `
+export interface Habit {
+  id: string
+  userId: string
+  name: string
+  description: string
+  frequency: "daily"
+  createdAt: string
+  completions: string []
+}
+`)
+
+	result := checkTypeContracts(root)
+	if !result.Passed {
+		t.Fatalf("expected flexible exported type contracts to pass, got:\n%s", result.Details)
+	}
+}
+
+func TestTestsCheckAcceptsEscapedTitleAndToHaveURL(t *testing.T) {
+	root := t.TempDir()
+	for _, rel := range []string{
+		"tests/unit/slug.test.ts",
+		"tests/unit/validators.test.ts",
+		"tests/unit/streaks.test.ts",
+		"tests/unit/habits.test.ts",
+		"tests/integration/auth-flow.test.tsx",
+		"tests/integration/habit-form.test.tsx",
+	} {
+		writeFixtureFile(t, root, rel, validFixtureTest)
+	}
+	writeFixtureFile(t, root, "tests/e2e/app.spec.ts", strings.ReplaceAll(
+		strings.ReplaceAll(validFixtureTest, `waitForURL`, `toHaveURL`),
+		`test("logs in an existing user and loads only that user's habits"`,
+		`test('logs in an existing user and loads only that user\'s habits'`,
+	))
+
+	result := checkTests(root)
+	if !result.Passed {
+		t.Fatalf("expected escaped title and toHaveURL to pass, got:\n%s", result.Details)
+	}
+}
+
+func TestRouteAndAuthChecksAcceptRouteConstants(t *testing.T) {
+	root := t.TempDir()
+	writeFixtureFile(t, root, "src/app/page.tsx", `import { ROUTES } from '@/src/lib/constants'; export default function Page() { return <SplashScreen next={ROUTES.DASHBOARD} fallback={ROUTES.LOGIN} />; }`)
+	writeFixtureFile(t, root, "src/app/login/page.tsx", `export default function Page() { return <LoginForm />; }`)
+	writeFixtureFile(t, root, "src/app/signup/page.tsx", `export default function Page() { return <SignupForm />; }`)
+	writeFixtureFile(t, root, "src/app/dashboard/page.tsx", `import { ROUTES } from '@/src/lib/constants'; export default function Page() { return redirect(ROUTES.LOGIN); }`)
+	writeFixtureFile(t, root, "src/components/auth/LoginForm.tsx", `import { ROUTES } from '@/src/lib/constants'; router.push(ROUTES.DASHBOARD);`)
+	writeFixtureFile(t, root, "src/components/auth/SignupForm.tsx", `import { ROUTES } from '@/src/lib/constants'; router.push(ROUTES.DASHBOARD);`)
+	writeFixtureFile(t, root, "src/lib/auth.ts", `throw new Error('User already exists'); throw new Error('Invalid email or password');`)
+
+	if result := checkRouteFiles(root); !result.Passed {
+		t.Fatalf("expected route constants to pass route check, got:\n%s", result.Details)
+	}
+	if result := checkAuthBehaviorMarkers(root); !result.Passed {
+		t.Fatalf("expected route constants to pass auth marker check, got:\n%s", result.Details)
+	}
+}
+
 func writeFixtureFile(t *testing.T, root, rel, content string) {
 	t.Helper()
 	path := filepath.Join(root, rel)

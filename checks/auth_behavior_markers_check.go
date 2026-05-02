@@ -2,7 +2,6 @@ package checks
 
 import (
 	"fmt"
-	"strings"
 )
 
 func checkAuthBehaviorMarkers(root string) Result {
@@ -13,14 +12,15 @@ func checkAuthBehaviorMarkers(root string) Result {
 	dashboardContent, _ := readFileIssue(root, "src/app/dashboard/page.tsx", &issues)
 
 	required := []struct {
-		text string
-		src  string
+		text         string
+		alternatives []string
+		src          string
 	}{
-		{"User already exists", "src/lib/auth.ts"},
-		{"Invalid email or password", "src/lib/auth.ts"},
-		{"/dashboard", "src/components/auth/LoginForm.tsx"},
-		{"/dashboard", "src/components/auth/SignupForm.tsx"},
-		{"/login", "src/app/dashboard/page.tsx"},
+		{text: "User already exists", alternatives: []string{"User already exists"}, src: "src/lib/auth.ts"},
+		{text: "Invalid email or password", alternatives: []string{"Invalid email or password"}, src: "src/lib/auth.ts"},
+		{text: "/dashboard", alternatives: []string{"/dashboard", "DASHBOARD"}, src: "src/components/auth/LoginForm.tsx"},
+		{text: "/dashboard", alternatives: []string{"/dashboard", "DASHBOARD"}, src: "src/components/auth/SignupForm.tsx"},
+		{text: "/login", alternatives: []string{"/login", "LOGIN"}, src: "src/app/dashboard/page.tsx"},
 	}
 
 	sources := map[string]string{
@@ -31,7 +31,7 @@ func checkAuthBehaviorMarkers(root string) Result {
 	}
 
 	for _, item := range required {
-		if !strings.Contains(sources[item.src], item.text) {
+		if !containsAny(sources[item.src], item.alternatives...) {
 			issues = append(issues, fmt.Sprintf("%s missing %q", item.src, item.text))
 		}
 	}

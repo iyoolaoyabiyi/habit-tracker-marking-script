@@ -50,44 +50,46 @@ func checkRequiredStack(root string) Result {
 	}
 
 	stackUsageChecks := []struct {
-		label    string
-		file     string
-		patterns []string
+		label        string
+		file         string
+		patternSets  [][]string
+		missingLabel string
 	}{
 		{
-			label:    "Next.js App Router",
-			file:     "src/app/layout.tsx",
-			patterns: []string{"export default function RootLayout"},
+			label:       "Next.js App Router",
+			file:        "src/app/layout.tsx",
+			patternSets: [][]string{{"export default function RootLayout"}},
 		},
 		{
-			label:    "React",
-			file:     "src/components/auth/LoginForm.tsx",
-			patterns: []string{"useState"},
+			label:       "React",
+			file:        "src/components/auth/LoginForm.tsx",
+			patternSets: [][]string{{"useState"}},
 		},
 		{
-			label:    "TypeScript",
-			file:     "tsconfig.json",
-			patterns: []string{`"compilerOptions"`},
+			label:       "TypeScript",
+			file:        "tsconfig.json",
+			patternSets: [][]string{{`"compilerOptions"`}},
 		},
 		{
-			label:    "Tailwind CSS",
-			file:     "src/app/globals.css",
-			patterns: []string{`@import "tailwindcss"`},
+			label:        "Tailwind CSS",
+			file:         "src/app/globals.css",
+			patternSets:  [][]string{{`@import "tailwindcss"`}, {`@tailwind base`, `@tailwind components`, `@tailwind utilities`}},
+			missingLabel: `@import "tailwindcss" or Tailwind v3 @tailwind directives`,
 		},
 		{
-			label:    "Playwright",
-			file:     "playwright.config.ts",
-			patterns: []string{"@playwright/test", "defineConfig"},
+			label:       "Playwright",
+			file:        "playwright.config.ts",
+			patternSets: [][]string{{"@playwright/test", "defineConfig"}},
 		},
 		{
-			label:    "Vitest",
-			file:     "vitest.config.ts",
-			patterns: []string{"vitest/config", "defineConfig"},
+			label:       "Vitest",
+			file:        "vitest.config.ts",
+			patternSets: [][]string{{"vitest/config", "defineConfig"}},
 		},
 		{
-			label:    "React Testing Library",
-			file:     "tests/integration/auth-flow.test.tsx",
-			patterns: []string{"@testing-library/react"},
+			label:       "React Testing Library",
+			file:        "tests/integration/auth-flow.test.tsx",
+			patternSets: [][]string{{"@testing-library/react"}},
 		},
 	}
 
@@ -98,10 +100,26 @@ func checkRequiredStack(root string) Result {
 			continue
 		}
 		text := string(fileContent)
-		for _, pattern := range check.patterns {
-			if !strings.Contains(text, pattern) {
-				issues = append(issues, fmt.Sprintf("%s not clearly used; %s missing %q", check.label, check.file, pattern))
+		matched := false
+		for _, patternSet := range check.patternSets {
+			setMatched := true
+			for _, pattern := range patternSet {
+				if !strings.Contains(text, pattern) {
+					setMatched = false
+					break
+				}
 			}
+			if setMatched {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			label := check.missingLabel
+			if label == "" && len(check.patternSets) > 0 {
+				label = strings.Join(check.patternSets[0], `", "`)
+			}
+			issues = append(issues, fmt.Sprintf("%s not clearly used; %s missing %q", check.label, check.file, label))
 		}
 	}
 

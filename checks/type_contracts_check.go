@@ -29,11 +29,11 @@ func checkTypeContracts(root string) Result {
 	for _, check := range authChecks {
 		body, ok := exportedTypeBody(string(authContent), check.name)
 		if !ok {
-			issues = append(issues, "src/types/auth.ts missing export type "+check.name)
+			issues = append(issues, "src/types/auth.ts missing exported "+check.name+" type")
 			continue
 		}
 		for _, field := range check.fields {
-			if !strings.Contains(body, field) {
+			if !typeBodyHasField(body, field) {
 				issues = append(issues, fmt.Sprintf("src/types/auth.ts %s missing %s", check.name, field))
 			}
 		}
@@ -41,7 +41,7 @@ func checkTypeContracts(root string) Result {
 
 	habitBody, ok := exportedTypeBody(string(habitContent), "Habit")
 	if !ok {
-		issues = append(issues, "src/types/habit.ts missing export type Habit")
+		issues = append(issues, "src/types/habit.ts missing exported Habit type")
 	} else {
 		habitChecks := []string{
 			"id: string;",
@@ -53,7 +53,7 @@ func checkTypeContracts(root string) Result {
 			"completions: string[];",
 		}
 		for _, needle := range habitChecks {
-			if !strings.Contains(habitBody, needle) {
+			if !typeBodyHasField(habitBody, needle) {
 				issues = append(issues, "src/types/habit.ts Habit missing "+needle)
 			}
 		}
@@ -67,15 +67,37 @@ func checkTypeContracts(root string) Result {
 }
 
 func exportedTypeBody(content, name string) (string, bool) {
-	pattern := regexp.MustCompile(`export\s+type\s+` + regexp.QuoteMeta(name) + `\s*=\s*\{`)
+	pattern := regexp.MustCompile(`export\s+(?:type\s+` + regexp.QuoteMeta(name) + `\s*=\s*|interface\s+` + regexp.QuoteMeta(name) + `\s*)\{`)
 	match := pattern.FindStringIndex(content)
 	if match == nil {
 		return "", false
 	}
 	rest := content[match[1]:]
-	end := strings.Index(rest, "};")
-	if end == -1 {
-		return "", false
+	depth := 1
+	for index, char := range rest {
+		switch char {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return rest[:index], true
+			}
+		}
 	}
-	return rest[:end], true
+	return "", false
+}
+
+func typeBodyHasField(body, field string) bool {
+	parts := strings.SplitN(strings.TrimSuffix(strings.TrimSpace(field), ";"), ":", 2)
+	if len(parts) != 2 {
+		return strings.Contains(body, field)
+	}
+	name := strings.TrimSpace(parts[0])
+	fieldType := strings.TrimSpace(parts[1])
+	typePattern := regexp.QuoteMeta(fieldType)
+	typePattern = strings.ReplaceAll(typePattern, `string\[\]`, `string\s*\[\]`)
+	typePattern = strings.ReplaceAll(typePattern, `'daily'`, `['"]daily['"]`)
+	pattern := regexp.MustCompile(`(?m)\b` + regexp.QuoteMeta(name) + `\s*:\s*` + typePattern + `\s*[,;]?`)
+	return pattern.MatchString(body)
 }

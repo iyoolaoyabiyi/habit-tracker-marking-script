@@ -45,12 +45,12 @@ func checkSourceBehaviorMarkers(root string) Result {
 		text    string
 		pattern string
 	}{
-		{"signup stores a user array", allSource, `(?s)writeUsers\s*\(|localStorage\.setItem\s*\([^)]*habit-tracker-users`},
-		{"signup/login stores a session", allSource, `(?s)writeSession\s*\(|localStorage\.setItem\s*\([^)]*habit-tracker-session`},
-		{"logout clears session", allSource, `(?s)(clearSession\s*\(|writeSession\s*\(\s*null\s*\)|removeItem\s*\([^)]*habit-tracker-session)`},
+		{"signup stores a user array", allSource, `(?s)writeUsers\s*\(|(?:window\.)?localStorage\.setItem\s*\([^)]*habit-tracker-users`},
+		{"signup/login stores a session", allSource, `(?s)writeSession\s*\(|(?:window\.)?localStorage\.setItem\s*\([^)]*habit-tracker-session`},
+		{"logout clears session", allSource, `(?s)(clearSession\s*\(|writeSession\s*\(\s*null\s*\)|(?:window\.)?localStorage\.removeItem\s*\([^)]*habit-tracker-session|removeItem\s*\([^)]*habit-tracker-session)`},
 		{"duplicate signup is rejected", files["src/lib/auth.ts"], `(?s)(some|find)\s*\([^)]*email[^)]*\).*User already exists|User already exists.*(some|find)\s*\([^)]*email`},
 		{"invalid login is rejected", files["src/lib/auth.ts"], `Invalid email or password`},
-		{"dashboard protects unauthenticated users", allSource, `/login`},
+		{"dashboard protects unauthenticated users", allSource, `(/login|ROUTES\.LOGIN|\bLOGIN\b)`},
 		{"dashboard filters habits by userId", allSource, `(?s)(filter\s*\([^)]*userId|habit\.userId\s*={2,3}|habit\.userId\s*===|userId\s*===\s*habit\.userId)`},
 		{"habit creation assigns owner", allSource, `(?s)userId\s*[:,]`},
 		{"habit frequency defaults to daily", allSource, `frequency\s*:\s*['"]daily['"]`},
