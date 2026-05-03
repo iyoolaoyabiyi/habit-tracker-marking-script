@@ -5,6 +5,7 @@ Usage:
   python3 extract_scores.py logs/101-176-scores.txt
   python3 extract_scores.py logs/101-176-scores.txt repo/101-176.txt
   python3 extract_scores.py logs/101-176-scores.txt repo/101-176.txt -o logs/101-176-extracted-scores.txt
+  python3 extract_scores.py logs/101-176-scores.txt repo/101-176.txt -o logs/extracts.txt --append
 
 When a repo list is provided, output follows the repo-list order and any repo
 without a completed score is emitted with score 0.
@@ -86,6 +87,20 @@ def default_output_path(log_path: Path) -> Path:
     return log_path.with_name(f"{log_path.stem}-extracted.txt")
 
 
+def write_output(path: Path, lines: list[str], append: bool) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = "\n".join(lines) + "\n"
+    if not append:
+        path.write_text(content, encoding="utf-8")
+        return
+
+    needs_separator = path.exists() and path.stat().st_size > 0
+    with path.open("a", encoding="utf-8") as file:
+        if needs_separator:
+            file.write("\n")
+        file.write(content)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Extract repo: score lines from examiner logs.")
     parser.add_argument("log_file", type=Path, help="examiner log file, for example logs/101-176-scores.txt")
@@ -96,12 +111,18 @@ def main() -> int:
         type=Path,
         help="output file path; defaults to <log-file-stem>-extracted.txt beside the log file",
     )
+    parser.add_argument(
+        "-a",
+        "--append",
+        action="store_true",
+        help="append scores to the output file instead of overwriting it",
+    )
     args = parser.parse_args()
 
     output_path = args.output or default_output_path(args.log_file)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text("\n".join(format_scores(args.log_file, args.repo_list)) + "\n", encoding="utf-8")
-    print(f"Wrote {output_path}")
+    write_output(output_path, format_scores(args.log_file, args.repo_list), args.append)
+    action = "Appended to" if args.append else "Wrote"
+    print(f"{action} {output_path}")
     return 0
 
 

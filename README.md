@@ -206,6 +206,57 @@ Useful when checking many submissions that share similar dependencies:
 
 The examiner intentionally does not share one `node_modules` directory across repositories. That can produce incorrect results when lockfiles, native packages, or postinstall scripts differ. The shared npm cache keeps downloads efficient while each target remains isolated.
 
+## Extract Scores
+
+Use `extract_scores.py` to convert a full examiner log into a compact `repo: score` file.
+
+Basic usage:
+
+```bash
+python3 extract_scores.py logs/101-176-scores.txt
+```
+
+By default, the script writes beside the input log using the suffix `-extracted.txt`. For example, `logs/101-176-scores.txt` produces:
+
+```text
+logs/101-176-scores-extracted.txt
+```
+
+To preserve the original repo-list order and include repositories that failed before scoring, pass the matching repo list:
+
+```bash
+python3 extract_scores.py logs/101-176-scores.txt repo/101-176.txt
+```
+
+When a repo list is provided:
+
+- output follows the repo-list order
+- setup failures are scored as `0`
+- repos in the list that never received a score are scored as `0`
+- markdown links such as `[url](url)` are normalized to the URL
+- duplicate repo entries are kept in order
+
+Choose a specific output file with `-o`:
+
+```bash
+python3 extract_scores.py logs/101-176-scores.txt repo/101-176.txt -o logs/extracts.txt
+```
+
+Append a new batch to an existing output file with `--append` or `-a`:
+
+```bash
+python3 extract_scores.py logs/101-176-scores.txt repo/101-176.txt -o logs/extracts.txt --append
+```
+
+Append mode adds a blank separator line before the new batch when the output file already has content.
+
+The output format is:
+
+```text
+https://github.com/owner/repo: 7.25
+https://github.com/owner/broken-repo: 0
+```
+
 ## Exit Codes
 
 - `0`: all checks passed
